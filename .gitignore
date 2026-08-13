@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Secret API keys
+.streamlit/secrets.toml
+secrets.toml
+
+# Local database
+flight_assistant.db
+
+# Python cache
+__pycache__/
+*.pyc
