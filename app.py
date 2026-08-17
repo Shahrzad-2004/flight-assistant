@@ -1,7 +1,7 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import base64
 from pathlib import Path
-
 
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -10,6 +10,7 @@ from typing import Optional, Literal
 from pydantic import BaseModel, Field
 from langchain_mistralai import ChatMistralAI
 from langchain_core.prompts import ChatPromptTemplate
+from flight_graph import flight_graph
 import uuid
 
 from chat_database import (
@@ -17,14 +18,13 @@ from chat_database import (
     save_message,
     load_messages
 )
+
 create_tables()
 
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
-# -----------------------------
-# تنظیمات صفحه
-# -----------------------------
 
+# تنظیمات صفحه
 st.set_page_config(
     page_title="دستیار هوشمند بلیط",
     page_icon="✈️",
@@ -32,13 +32,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# -----------------------------
+
 # خواندن عکس
-# -----------------------------
-
 BASE_DIR = Path(__file__).parent
-
-
 def get_base64(file_name):
 
     path = BASE_DIR / file_name
@@ -46,16 +42,15 @@ def get_base64(file_name):
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
 
-
 background = get_base64("ee.jpg")
 
-# -----------------------------
+
 # استایل
-# -----------------------------
 
 st.markdown(
     f"""
 <style>
+
 @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
 
 #MainMenu{{visibility:hidden;}}
@@ -107,7 +102,16 @@ st.markdown("""
 <style>
 
 /* کارت اصلی */
+/* جلوگیری از کم‌رنگ شدن پیام‌ها هنگام اجرای مجدد Streamlit */
 
+[data-testid="stChatMessage"] {
+    opacity: 1 !important;
+}
+
+[data-testid="stChatMessage"] * {
+    opacity: 1 !important;
+    color: #111827 !important;
+}
 .main-card{
 
     background:rgba(255,255,255,.90);
@@ -234,7 +238,20 @@ st.markdown("""
     color:#6b7280 !important;
 
 }
+/* متن حالت جستجو و لودینگ */
 
+[data-testid="stSpinner"] {
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+[data-testid="stSpinner"] p,
+[data-testid="stSpinner"] span {
+    color: #111827 !important;
+    font-family: 'Vazirmatn', sans-serif !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+}
 /* دکمه */
 
 button{
@@ -262,10 +279,130 @@ button:hover{
 </style>
 """, unsafe_allow_html=True)
 
-# -----------------------------
-# هدر
-# -----------------------------
+#استایل باتن های نوع پرواز
+st.markdown(
+    """
+<style>
 
+/* عنوان انتخاب کلاس پرواز */
+
+.cabin-title {
+    direction: rtl;
+    text-align: right;
+
+    font-family: 'Vazirmatn', sans-serif !important;
+    font-size: 17px;
+    font-weight: 700;
+
+    color: #1f2937;
+
+    margin-top: 20px;
+    margin-bottom: 12px;
+}
+
+
+/* راست‌چین شدن ترتیب دکمه‌های کلاس پرواز */
+
+[data-testid="stHorizontalBlock"]:has(.st-key-economy_button) {
+    direction: rtl !important;
+    flex-direction: row-reverse !important;
+    gap: 10px !important;
+}
+
+
+/* استایل شیشه‌ای مخصوص چهار دکمه کلاس پرواز */
+
+.st-key-economy_button button,
+.st-key-business_button button,
+.st-key-first_button button,
+.st-key-unspecified_button button,
+.st-key-passenger_enter_button button,
+.st-key-passenger_default_button button {
+
+    width: 100% !important;
+    min-height: 48px !important;
+
+    background: rgba(255, 255, 255, 0.45) !important;
+
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.75) !important;
+    border-radius: 15px !important;
+
+    box-shadow:
+        0 5px 18px rgba(31, 41, 55, 0.10),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+
+    color: #1f2937 !important;
+
+    font-family: 'Vazirmatn', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+
+    direction: rtl !important;
+    text-align: center !important;
+
+    transition: all 0.25s ease !important;
+}
+
+
+/* فونت متن داخل دکمه‌ها */
+
+.st-key-economy_button button p,
+.st-key-business_button button p,
+.st-key-first_button button p,
+.st-key-unspecified_button button p,
+.st-key-passenger_enter_button button p,
+.st-key-passenger_default_button button p {
+
+    font-family: 'Vazirmatn', sans-serif !important;
+    color: #1f2937 !important;
+
+    direction: rtl !important;
+    text-align: center !important;
+}
+
+
+/* حالت قرار گرفتن موس روی دکمه */
+
+.st-key-economy_button button:hover,
+.st-key-business_button button:hover,
+.st-key-first_button button:hover,
+.st-key-unspecified_button button:hover,
+.st-key-passenger_enter_button button:hover,
+.st-key-passenger_default_button button:hover {
+
+    background: rgba(37, 99, 235, 0.16) !important;
+
+    border-color: rgba(37, 99, 235, 0.45) !important;
+
+    box-shadow:
+        0 8px 22px rgba(37, 99, 235, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+
+    transform: translateY(-2px) !important;
+}
+
+
+/* حالت کلیک */
+
+.st-key-economy_button button:active,
+.st-key-business_button button:active,
+.st-key-first_button button:active,
+.st-key-unspecified_button button:active,
+.st-key-passenger_enter_button button:active,
+.st-key-passenger_default_button button:active {
+
+    transform: translateY(0) scale(0.98) !important;
+}
+
+</style>
+""",
+    unsafe_allow_html=True
+)
+
+# هدر
 st.markdown("""
 
 <div class="main-card">
@@ -286,9 +423,8 @@ st.markdown("""
 
 """, unsafe_allow_html=True)
 
-# -----------------------------
+
 # ساختار اطلاعات پرواز
-# -----------------------------
 
 class FlightRequest(BaseModel):
     is_flight_request: bool = Field(
@@ -307,7 +443,7 @@ class FlightRequest(BaseModel):
 
     departure_date_raw: Optional[str] = Field(
         default=None,
-        description="تاریخ رفت دقیقاً همان‌طور که کاربر بیان کرده است"
+        description="تاریخ رفت دقیقاً همان‌ طور که کاربر بیان کرده است"
     )
 
     departure_date: Optional[str] = Field(
@@ -322,35 +458,46 @@ class FlightRequest(BaseModel):
 
     trip_type: Optional[Literal["one_way", "round_trip"]] = Field(
         default=None,
-        description="نوع سفر: یک‌طرفه یا رفت‌وبرگشت"
+        description="نوع سفر: یک‌ طرفه یا رفت‌ و برگشت"
     )
 
-    adults: int = Field(
-        default=1,
+    adults: Optional[int] = Field(
+        default=None,
         ge=1,
         description="تعداد مسافران بزرگسال"
     )
 
-    children: int = Field(
-        default=0,
+    children: Optional[int] = Field(
+        default=None,
         ge=0,
         description="تعداد کودکان"
     )
 
-    infants: int = Field(
-        default=0,
+    infants: Optional[int] = Field(
+        default=None,
         ge=0,
         description="تعداد نوزادان"
     )
-
-    cabin_class: Literal[
-        "economy",
-        "business",
-        "first",
-        "unspecified"
+    passenger_count_provided: bool = Field(
+        default=False,
+        description=(
+            "آیا کاربر تعداد مسافران را در درخواست خود "
+            "به‌صورت واضح مشخص کرده است؟"
+        )
+    )
+    cabin_class: Optional[
+        Literal[
+            "economy",
+            "business",
+            "first",
+            "unspecified"
+        ]
     ] = Field(
-        default="unspecified",
-        description="کلاس پروازی"
+        default=None,
+        description=(
+            "کلاس پروازی کاربر؛ اگر کاربر کلاس را مشخص نکرده "
+            "مقدار null و اگر گفت اهمیت ندارد unspecified باشد"
+        )
     )
 
     max_price_toman: Optional[int] = Field(
@@ -394,7 +541,7 @@ def create_flight_extractor():
 
     if not api_key:
         raise RuntimeError(
-            "کلید GOOGLE_API_KEY در فایل secrets.toml پیدا نشد."
+            "کلید MISTRAL_API_KEY در فایل secrets.toml پیدا نشد."
         )
 
     llm = ChatMistralAI(
@@ -422,13 +569,35 @@ def create_flight_extractor():
 قوانین:
 - هیچ اطلاعاتی را حدس نزن.
 - اگر اطلاعاتی گفته نشده، مقدار آن را null قرار بده.
-- اگر تعداد مسافر گفته نشده، یک بزرگسال در نظر بگیر.
+
 - نام شهرها را به فارسی و استاندارد برگردان.
 - تاریخ‌های نسبی مانند فردا و پس‌فردا را نسبت به امروز محاسبه کن.
 - departure_date_raw باید عبارت تاریخ داخل پیام کاربر باشد.
 - departure_date و return_date باید به فرمت YYYY-MM-DD باشند.
 - اگر سفر رفت‌وبرگشت بود trip_type برابر round_trip باشد.
-- اگر پیام مربوط به پرواز نبود is_flight_request را false قرار بده.
+- اگر کاربر درباره بلیط هواپیما، پرواز، سفر هوایی، مبدأ، مقصد،
+  تاریخ پرواز، تعداد مسافران یا کلاس پرواز صحبت می‌کند،
+  is_flight_request را true قرار بده.
+- حتی اگر اطلاعات درخواست ناقص باشد، مثلاً فقط تعداد مسافران
+  یا فقط مبدأ و مقصد را گفته باشد، باز هم is_flight_request باید true باشد.
+- فقط زمانی is_flight_request را false قرار بده که پیام کاربر
+  هیچ ارتباطی با جستجو یا رزرو بلیط هواپیما نداشته باشد.
+- اگر کاربر تعداد بزرگسال، کودک، نوزاد یا تعداد کل مسافران را مشخص کرده بود،
+  passenger_count_provided را true قرار بده.
+- اگر کاربر تعداد مسافران را مشخص نکرده است،
+  adults و children و infants را null قرار بده
+  و passenger_count_provided را false قرار بده.
+
+- اگر کاربر تعداد مسافران را مشخص کرده است،
+  تعداد بزرگسال، کودک و نوزاد را مطابق متن استخراج کن
+  و passenger_count_provided را true قرار بده.
+
+- اگر کاربر مثلاً گفت «۲ بزرگسال و یک کودک»،
+  adults برابر 2، children برابر 1 و infants برابر 0 باشد.
+
+- هیچ‌وقت به صورت خودکار یک بزرگسال در نظر نگیر.
+  مقدار پیش‌فرض یک بزرگسال فقط بعداً و در صورت انتخاب کاربر
+  توسط برنامه اعمال می‌شود.
 """
         ),
         (
@@ -455,7 +624,48 @@ def extract_flight_request(user_text: str) -> FlightRequest:
 
     # خروجی json_schema از نوع dict است
     return FlightRequest.model_validate(result)
+def merge_flight_state(new_request: FlightRequest):
 
+    # اطلاعات قبلی را می‌گیریم
+    current_state = st.session_state.get(
+        "flight_state",
+        {}
+    ).copy()
+
+    new_data = new_request.model_dump()
+
+    # این دو فیلد را جدا مدیریت می‌کنیم
+    new_data.pop("is_flight_request", None)
+    new_data.pop("passenger_count_provided", None)
+
+    # فقط اطلاعاتی که در پیام جدید وجود دارند
+    # روی اطلاعات قبلی نوشته می‌شوند
+    for key, value in new_data.items():
+
+        if value is not None:
+            current_state[key] = value
+
+    # اگر کاربر خودش تعداد مسافران را گفته باشد
+    if new_request.passenger_count_provided:
+
+        # اگر کودک یا نوزاد ذکر نشده، صفر در نظر گرفته شود
+        if current_state.get("children") is None:
+            current_state["children"] = 0
+
+        if current_state.get("infants") is None:
+            current_state["infants"] = 0
+
+        current_state["passenger_status"] = "resolved"
+
+    else:
+
+        # فقط بار اول ساخته شود
+        current_state.setdefault(
+            "passenger_status",
+            "unknown"
+        )
+
+    return current_state
 # -----------------------------
 # حافظه چت
 # -----------------------------
@@ -470,7 +680,21 @@ if "messages" not in st.session_state:
         }
 
     ]
+def scroll_to_bottom():
 
+    components.html(
+        """
+        <script>
+            setTimeout(function () {
+                window.frameElement.scrollIntoView({
+                    behavior: "smooth",
+                    block: "end"
+                });
+            }, 400);
+        </script>
+        """,
+        height=0
+    )
 # -----------------------------
 # نمایش پیام‌ها
 # -----------------------------
@@ -481,20 +705,351 @@ for message in st.session_state.messages:
 
         st.markdown(message["content"])
 
-# -----------------------------
-# ورودی کاربر
-# -----------------------------
-messages = load_messages(
-    st.session_state.session_id
-)
 
-for message in messages:
-    with st.chat_message(message["role"]):
-        st.write(message["content"])
-        
-prompt = st.chat_input(
-  'درخواست خود را بنویسید'
-)
+# ثبت انتخاب کلاس پرواز
+def select_cabin_class(cabin_value, cabin_label):
+
+    current_state = st.session_state["flight_state"].copy()
+
+    # قرار دادن انتخاب کاربر در State
+    current_state["cabin_class"] = cabin_value
+
+    # اجرای دوباره Graph برای تعیین مرحله بعد
+    graph_result = flight_graph.invoke(current_state)
+
+    st.session_state["flight_state"] = graph_result
+    print(
+        "FINAL SESSION FLIGHT STATE:",
+        st.session_state["flight_state"]
+    )
+    user_message = f"کلاس پرواز: {cabin_label}"
+
+    # ذخیره پیام انتخاب کاربر در حافظه
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_message
+        }
+    )
+
+    save_message(
+        st.session_state.session_id,
+        "user",
+        user_message
+    )
+
+    # ذخیره پاسخ مرحله بعد Graph
+    assistant_message = graph_result["assistant_message"]
+
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": assistant_message
+        }
+    )
+
+    save_message(
+        st.session_state.session_id,
+        "assistant",
+        assistant_message
+    )
+
+def select_passenger_option(option):
+
+    current_state = st.session_state[
+        "flight_state"
+    ].copy()
+
+    # کاربر می‌خواهد خودش تعداد را وارد کند
+    if option == "enter":
+
+        current_state["passenger_status"] = "entering"
+
+        user_message = "تعداد مسافران را وارد می‌کنم."
+
+    # کاربر نمی‌خواهد تعداد را وارد کند
+    else:
+
+        current_state["adults"] = 1
+        current_state["children"] = 0
+        current_state["infants"] = 0
+
+        current_state["passenger_status"] = "resolved"
+
+        # برای سازگاری با ساختار فعلی Graph
+        current_state["passengers_confirmed"] = True
+
+        user_message = "تعداد مسافران را وارد نمی‌کنم."
+
+    # اجرای دوباره Graph
+    graph_result = flight_graph.invoke(
+        current_state
+    )
+
+    # ذخیره State جدید
+    st.session_state["flight_state"] = graph_result
+    print(
+        "FINAL SESSION FLIGHT STATE:",
+        st.session_state["flight_state"]
+    )
+    # ذخیره پیام کاربر در چت
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_message
+        }
+    )
+
+    save_message(
+        st.session_state.session_id,
+        "user",
+        user_message
+    )
+
+    # پاسخ Graph
+    assistant_message = graph_result[
+        "assistant_message"
+    ]
+
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": assistant_message
+        }
+    )
+
+    save_message(
+        st.session_state.session_id,
+        "assistant",
+        assistant_message
+    )
+
+    print(
+        "PASSENGER OPTION RESULT:",
+        graph_result
+    )
+def save_passenger_counts():
+
+    current_state = st.session_state[
+        "flight_state"
+    ].copy()
+
+    # دریافت مقادیر شمارنده‌ها
+    current_state["adults"] = (
+        st.session_state["adult_count"]
+    )
+
+    current_state["children"] = (
+        st.session_state["child_count"]
+    )
+
+    current_state["infants"] = (
+        st.session_state["infant_count"]
+    )
+
+    # تعداد مسافران مشخص شده
+    current_state["passenger_status"] = "resolved"
+
+    # برای سازگاری با ساختار فعلی Graph
+    current_state["passengers_confirmed"] = True
+
+    user_message = (
+        f"تعداد مسافران: "
+        f"{current_state['adults']} بزرگسال، "
+        f"{current_state['children']} کودک، "
+        f"{current_state['infants']} نوزاد"
+    )
+
+    # اجرای دوباره LangGraph
+    graph_result = flight_graph.invoke(
+        current_state
+    )
+
+    st.session_state["flight_state"] = graph_result
+
+    # ذخیره پیام انتخاب کاربر
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_message
+        }
+    )
+
+    save_message(
+        st.session_state.session_id,
+        "user",
+        user_message
+    )
+
+    # ذخیره پاسخ Graph
+    assistant_message = graph_result[
+        "assistant_message"
+    ]
+
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": assistant_message
+        }
+    )
+
+    save_message(
+        st.session_state.session_id,
+        "assistant",
+        assistant_message
+    )
+
+    print(
+        "PASSENGER COUNTER RESULT:",
+        graph_result
+    )
+# بررسی نوع رابطی که LangGraph درخواست کرده
+current_ui = st.session_state.get(
+    "flight_state",
+    {}
+).get("ui_type")
+
+
+if current_ui == "passenger_choice":
+
+    st.markdown(
+        """
+        <div class="cabin-title">
+            آیا می‌خواهید تعداد مسافران را مشخص کنید؟
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    col1, col2 = st.columns(2)
+
+    col1.button(
+        "وارد می‌کنم",
+        key="passenger_enter_button",
+        use_container_width=True,
+        on_click=select_passenger_option,
+        args=("enter",)
+    )
+
+    col2.button(
+        "وارد نمی‌کنم",
+        key="passenger_default_button",
+        use_container_width=True,
+        on_click=select_passenger_option,
+        args=("default",)
+    )
+
+    scroll_to_bottom()
+
+    # هنگام نمایش دکمه‌ها chat_input نباشد
+    prompt = None
+
+elif current_ui == "passenger_counter":
+
+    st.markdown(
+        """
+        <div class="cabin-title">
+            تعداد مسافران را مشخص کنید:
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+
+        st.number_input(
+            "بزرگسال",
+            min_value=1,
+            value=1,
+            step=1,
+            key="adult_count"
+        )
+
+    with col2:
+
+        st.number_input(
+            "کودک",
+            min_value=0,
+            value=0,
+            step=1,
+            key="child_count"
+        )
+
+    with col3:
+
+        st.number_input(
+            "نوزاد",
+            min_value=0,
+            value=0,
+            step=1,
+            key="infant_count"
+        )
+
+    st.button(
+        "ثبت تعداد مسافران",
+        key="save_passenger_counts_button",
+        use_container_width=True,
+        on_click=save_passenger_counts
+    )
+
+    scroll_to_bottom()
+
+    prompt = None
+
+elif current_ui == "cabin_buttons":
+
+    st.markdown(
+    """
+    <div class="cabin-title">
+        کلاس پرواز را انتخاب کنید:
+    </div>
+    """,
+    unsafe_allow_html=True
+    )
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.button(
+        "اکونومی",
+        key="economy_button",
+        use_container_width=True,
+        on_click=select_cabin_class,
+        args=("economy", "اکونومی")
+    )
+
+    col2.button(
+        "بیزنس",
+        key="business_button",
+        use_container_width=True,
+        on_click=select_cabin_class,
+        args=("business", "بیزنس")
+    )
+
+    col3.button(
+        "فرست‌ کلاس",
+        key="first_button",
+        use_container_width=True,
+        on_click=select_cabin_class,
+        args=("first", "فرست‌ کلاس")
+    )
+
+    col4.button(
+        "اهمیت ندارد",
+        key="unspecified_button",
+        use_container_width=True,
+        on_click=select_cabin_class,
+        args=("unspecified", "اهمیت ندارد")
+    )
+    scroll_to_bottom()
+    # در این مرحله کادر چت نمایش داده نشود
+    prompt = None
+
+else:
+    prompt = st.chat_input(
+        "درخواست خود را بنویسید"
+    )
 
 st.markdown(
     "</div>",
@@ -535,10 +1090,23 @@ if prompt:
 
                 try:
                     flight_request = extract_flight_request(prompt)
+                    print(
+                    "Passengers:",
+                    flight_request.adults,
+                    flight_request.children,
+                    flight_request.infants,
+                    "Provided:",
+                    flight_request.passenger_count_provided
+                    )
+                    current_state = merge_flight_state(
+                        flight_request
+                    )
 
-                    # ذخیره اطلاعات برای مرحله Playwright
-                    st.session_state["flight_request"] = (
-                        flight_request.model_dump()
+                    st.session_state["flight_state"] = current_state
+
+                    print(
+                        "MERGED FLIGHT STATE:",
+                        current_state
                     )
 
                     if not flight_request.is_flight_request:
@@ -551,13 +1119,13 @@ if prompt:
                     else:
                         missing_fields = []
 
-                        if not flight_request.origin:
+                        if not current_state.get("origin"):
                             missing_fields.append("مبدأ")
 
-                        if not flight_request.destination:
+                        if not current_state.get("destination"):
                             missing_fields.append("مقصد")
 
-                        if not flight_request.departure_date:
+                        if not current_state.get("departure_date"):
                             missing_fields.append("تاریخ حرکت")
 
                         if missing_fields:
@@ -569,27 +1137,30 @@ if prompt:
                             )
 
                         else:
-                            trip_label = (
-                                "رفت‌وبرگشت"
-                                if flight_request.trip_type == "round_trip"
-                                else "یک‌طرفه"
+                            # تبدیل State کامل به ورودی LangGraph
+                            graph_input = current_state.copy()  
+
+                            graph_input["passengers_confirmed"] = (
+                            current_state.get("passenger_status") == "resolved"
                             )
-
-                            answer = f"""
-            اطلاعات درخواست شما استخراج شد ✅
-
-            - مبدأ: {flight_request.origin}
-            - مقصد: {flight_request.destination}
-            - تاریخ رفت: {flight_request.departure_date}
-            - تاریخ برگشت: {flight_request.return_date or "ندارد"}
-            - نوع سفر: {trip_label}
-            - تعداد بزرگسال: {flight_request.adults}
-            - تعداد کودک: {flight_request.children}
-            - کلاس پرواز: {flight_request.cabin_class}
-            - حداکثر قیمت: {flight_request.max_price_toman or "مشخص نشده"}
-
-            در مرحله بعد با این اطلاعات پروازها جستجو می‌شوند.
-            """
+                            print(
+                            "GRAPH INPUT:",
+                            graph_input
+                            )
+                            # اجرای LangGraph
+                            graph_result = flight_graph.invoke(graph_input)
+                            print(
+                                "GRAPH RESULT:",
+                                graph_result
+                            )
+                            # ذخیره وضعیت Graph در حافظه Streamlit
+                            st.session_state["flight_state"] = graph_result
+                            print(
+                                "FINAL SESSION FLIGHT STATE:",
+                                st.session_state["flight_state"]
+                            )
+                            # دریافت سؤال مرحله بعد از LangGraph
+                            answer = graph_result["assistant_message"]
 
                 except Exception as error:
 
@@ -597,7 +1168,7 @@ if prompt:
                     error_text = str(error)
 
                     answer = f"""
-                در اتصال به Gemini خطایی رخ داد ❌
+                در اتصال به Mistral خطایی رخ داد ❌
 
                 نوع خطا: `{error_type}`
 
