@@ -317,7 +317,8 @@ st.markdown(
 .st-key-first_button button,
 .st-key-unspecified_button button,
 .st-key-passenger_enter_button button,
-.st-key-passenger_default_button button {
+.st-key-passenger_default_button button,
+.st-key-save_passenger_counts_button button {
 
     width: 100% !important;
     min-height: 48px !important;
@@ -354,7 +355,8 @@ st.markdown(
 .st-key-first_button button p,
 .st-key-unspecified_button button p,
 .st-key-passenger_enter_button button p,
-.st-key-passenger_default_button button p {
+.st-key-passenger_default_button button p,
+.st-key-save_passenger_counts_button button p {
 
     font-family: 'Vazirmatn', sans-serif !important;
     color: #1f2937 !important;
@@ -371,7 +373,8 @@ st.markdown(
 .st-key-first_button button:hover,
 .st-key-unspecified_button button:hover,
 .st-key-passenger_enter_button button:hover,
-.st-key-passenger_default_button button:hover {
+.st-key-passenger_default_button button:hover,
+.st-key-save_passenger_counts_button button:hover {
 
     background: rgba(37, 99, 235, 0.16) !important;
 
@@ -392,9 +395,156 @@ st.markdown(
 .st-key-first_button button:active,
 .st-key-unspecified_button button:active,
 .st-key-passenger_enter_button button:active,
-.st-key-passenger_default_button button:active {
+.st-key-passenger_default_button button:active,
+.st-key-save_passenger_counts_button button:active {
 
     transform: translateY(0) scale(0.98) !important;
+}
+
+
+/* ================================================= */
+/* استایل شیشه‌ای و شیک شمارنده مسافران (بزرگسال/کودک/نوزاد) */
+/* ================================================= */
+
+.st-key-adult_count,
+.st-key-child_count,
+.st-key-infant_count {
+
+    background: rgba(255, 255, 255, 0.45) !important;
+
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.75) !important;
+    border-radius: 18px !important;
+
+    padding: 10px 14px 14px 14px !important;
+
+    box-shadow:
+        0 5px 18px rgba(31, 41, 55, 0.10),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+
+    transition: all 0.25s ease !important;
+}
+
+.st-key-adult_count:hover,
+.st-key-child_count:hover,
+.st-key-infant_count:hover {
+
+    box-shadow:
+        0 8px 22px rgba(37, 99, 235, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+
+    transform: translateY(-2px) !important;
+}
+
+/* برچسب بزرگسال / کودک / نوزاد */
+
+.st-key-adult_count label p,
+.st-key-child_count label p,
+.st-key-infant_count label p {
+
+    font-family: 'Vazirmatn', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: #1f2937 !important;
+
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+/* ریست کامل هر پس‌زمینه تیره‌ای که خود streamlit روی */
+/* لایه‌های داخلی ورودی عدد ست می‌کند                */
+
+.st-key-adult_count *,
+.st-key-child_count *,
+.st-key-infant_count * {
+
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
+
+/* بدنه ورودی عدد (باکس روشن شیشه‌ای دربرگیرنده عدد و دکمه‌ها) */
+
+.st-key-adult_count [data-testid="stNumberInputContainer"],
+.st-key-child_count [data-testid="stNumberInputContainer"],
+.st-key-infant_count [data-testid="stNumberInputContainer"],
+.st-key-adult_count [data-baseweb="input"],
+.st-key-child_count [data-baseweb="input"],
+.st-key-infant_count [data-baseweb="input"] {
+
+    background: rgba(255, 255, 255, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.85) !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+}
+
+.st-key-adult_count input,
+.st-key-child_count input,
+.st-key-infant_count input {
+
+    background: transparent !important;
+    color: #1f2937 !important;
+
+    font-family: 'Vazirmatn', sans-serif !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+
+    text-align: center !important;
+}
+
+/* دکمه‌های + و − شمارنده - استایل شیشه‌ای ملایم */
+
+.st-key-adult_count button,
+.st-key-child_count button,
+.st-key-infant_count button {
+
+    background: rgba(255, 255, 255, 0.7) !important;
+    color: #2563eb !important;
+
+    border: 1.5px solid rgba(37, 99, 235, 0.35) !important;
+    border-radius: 50% !important;
+
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+
+    margin: 6px !important;
+
+    box-shadow: 0 2px 8px rgba(31, 41, 55, 0.08) !important;
+
+    transition: all 0.2s ease !important;
+}
+
+.st-key-adult_count button:hover,
+.st-key-child_count button:hover,
+.st-key-infant_count button:hover {
+
+    background: rgba(37, 99, 235, 0.14) !important;
+    border-color: rgba(37, 99, 235, 0.6) !important;
+    transform: scale(1.08) !important;
+}
+
+.st-key-adult_count button:active,
+.st-key-child_count button:active,
+.st-key-infant_count button:active {
+
+    transform: scale(0.92) !important;
+}
+
+.st-key-adult_count button svg,
+.st-key-child_count button svg,
+.st-key-infant_count button svg {
+
+    fill: #2563eb !important;
+}
+
+/* فاصله یکنواخت بین سه ستون شمارنده */
+
+[data-testid="stHorizontalBlock"]:has(.st-key-adult_count) {
+    gap: 12px !important;
 }
 
 </style>
