@@ -663,6 +663,200 @@ def inject_confirmation_style() -> None:
         """,
         unsafe_allow_html=True
     )
+def inject_sidebar_style(sidebar_open: bool = True) -> None:
+    """استایل نوار کناری کشویی: دکمه شناور باز/بسته، کارت هدر نوار،
+    فهرست گفتگوهای اخیر (با رفع مشکل خارج زدن متن از کادر) و
+    رنگ‌آمیزی نرم‌تر آواتار پیام‌های ربات و کاربر.
+    """
+
+    # وقتی کاربر نوار کناری را بسته باشد، به‌طور کامل مخفی می‌شود
+    # اما دکمه‌ی شناور باز کردن، همیشه در دسترس باقی می‌ماند
+    hide_sidebar_rule = "" if sidebar_open else """
+    [data-testid="stSidebar"]{
+        display:none !important;
+    }
+    """
+
+    st.markdown(
+        f"""
+    <style>
+
+    :root{{
+        --soft-blue:#6fa3d6;
+        --soft-blue-hover:#5c93c9;
+        --soft-blue-border:#a9cdf0;
+        --soft-blue-bg:#eaf3fc;
+        --soft-user-color:#a8b6e8;
+    }}
+
+    {hide_sidebar_rule}
+
+    /* ظاهر کلی نوار کناری */
+    [data-testid="stSidebar"]{{
+        background:rgba(255,255,255,.92) !important;
+        backdrop-filter:blur(16px);
+    }}
+
+    [data-testid="stSidebar"] > div{{
+        padding-top:70px;
+    }}
+
+    /* مخفی کردن دکمه‌های داخلی و پیش‌فرض خود Streamlit برای
+       باز/بسته کردن نوار کناری، تا فقط دکمه شناور سفارشی ما
+       (sidebar_toggle_button) این کار را انجام دهد و با هم تداخل
+       نکنند (باگ بسته‌ماندن نوار کناری دقیقاً از همینجا بود) */
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="baseButton-headerNoPadding"],
+    button[title="Collapse sidebar"],
+    button[title="Expand sidebar"],
+    button[aria-label="Collapse sidebar"],
+    button[aria-label="Expand sidebar"]{{
+        display:none !important;
+        visibility:hidden !important;
+        pointer-events:none !important;
+    }}
+
+    /* دکمه شناور باز/بسته کردن نوار کناری - همیشه در دسترس */
+    .st-key-sidebar_toggle_button button{{
+        position:fixed !important;
+        top:14px;
+        left:14px;
+        z-index:999999 !important;
+
+        width:46px !important;
+        height:46px !important;
+        min-width:46px !important;
+
+        border-radius:50% !important;
+
+        background:var(--soft-blue) !important;
+        color:white !important;
+
+        font-size:20px !important;
+        line-height:1 !important;
+
+        border:none !important;
+        box-shadow:0 6px 18px rgba(111,163,214,.45) !important;
+    }}
+
+    .st-key-sidebar_toggle_button button:hover{{
+        background:var(--soft-blue-hover) !important;
+        transform:translateY(-2px);
+    }}
+
+    /* کارت هدر نوار کناری: عنوان + دکمه گفتگوی جدید */
+    .st-key-sidebar_header_box{{
+        background:#ffffff !important;
+        border:1px solid var(--soft-blue-border) !important;
+        border-radius:18px !important;
+        padding:16px 14px 14px 14px !important;
+        margin-bottom:18px !important;
+        box-shadow:0 4px 14px rgba(111,163,214,.12) !important;
+    }}
+
+    .sidebar-title{{
+        font-family:'Vazirmatn', sans-serif !important;
+        font-weight:800;
+        font-size:18px;
+        color:#1f2937;
+        text-align:center;
+        margin-bottom:12px;
+    }}
+
+    /* دکمه گفتگوی جدید */
+    .st-key-new_chat_button button{{
+        background:var(--soft-blue) !important;
+    }}
+
+    .st-key-new_chat_button button:hover{{
+        background:var(--soft-blue-hover) !important;
+    }}
+
+    /* عنوان بخش گفتگوهای اخیر */
+    .sidebar-section-title{{
+        font-family:'Vazirmatn', sans-serif !important;
+        font-weight:700;
+        font-size:14px;
+        color:#374151;
+        direction:rtl;
+        text-align:right;
+        margin:6px 4px 10px 4px;
+    }}
+
+    .sidebar-empty{{
+        font-family:'Vazirmatn', sans-serif !important;
+        font-size:13px;
+        color:#9ca3af;
+        direction:rtl;
+        text-align:right;
+        margin:4px;
+    }}
+
+    /* ردیف هر گفتگوی ذخیره‌شده - راست‌چین کردن ترتیب دکمه نام/حذف */
+    [data-testid="stSidebar"] [data-testid="stHorizontalBlock"]{{
+        gap:6px !important;
+        align-items:center !important;
+        direction:rtl !important;
+        flex-direction:row-reverse !important;
+    }}
+
+    /* دکمه‌ی هر گفتگو - رفع مشکل خارج زدن متن از کادر */
+    [class*="st-key-session_"] button{{
+        background:rgba(255,255,255,.55) !important;
+        color:#1f2937 !important;
+        border:1px solid rgba(169,205,240,.7) !important;
+
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+        white-space:nowrap !important;
+        display:block !important;
+
+        text-align:right !important;
+        direction:rtl !important;
+    }}
+
+    [class*="st-key-session_"] button p{{
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+        white-space:nowrap !important;
+        max-width:100% !important;
+    }}
+
+    [class*="st-key-session_"] button:hover{{
+        background:var(--soft-blue-bg) !important;
+        border-color:var(--soft-blue) !important;
+    }}
+
+    /* دکمه حذف تکی هر گفتگو */
+    [class*="st-key-delete_"] button{{
+        background:rgba(255,255,255,.55) !important;
+        color:#ef4444 !important;
+        border:1px solid rgba(239,68,68,.25) !important;
+        min-width:36px !important;
+        padding:4px !important;
+    }}
+
+    [class*="st-key-delete_"] button:hover{{
+        background:rgba(239,68,68,.12) !important;
+        border-color:rgba(239,68,68,.5) !important;
+    }}
+
+    /* آواتار پیام دستیار (ربات) - آبی ملایم به‌جای نارنجی */
+    [data-testid="stChatMessageAvatarAssistant"]{{
+        background-color:var(--soft-blue) !important;
+    }}
+
+    /* آواتار پیام کاربر - رنگی هماهنگ با آواتار ربات */
+    [data-testid="stChatMessageAvatarUser"]{{
+        background-color:var(--soft-user-color) !important;
+        color:#1f2a4d !important;
+    }}
+
+    </style>
+    """,
+        unsafe_allow_html=True
+    )
 def render_header() -> None:
     """رندر کارت اصلی، لوگو، عنوان و زیرعنوان."""
     # هدر

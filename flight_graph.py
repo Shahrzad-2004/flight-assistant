@@ -57,19 +57,7 @@ class FlightState(TypedDict, total=False):
         "editing"
     ]
 def decide_next_step(state: FlightState) -> FlightState:
-    # بررسی وضعیت تعداد مسافران
-    passenger_status = state.get("passenger_status","unknown")
 
-    if passenger_status == "unknown":
-
-        return {
-            "current_step": "ask_passenger_choice","assistant_message": (
-                "آیا می‌خواهید تعداد مسافران را مشخص کنید؟"),"ui_type": "passenger_choice"}
-    if passenger_status == "entering":
-
-        return {
-            "current_step": "enter_passengers","assistant_message": (
-                "تعداد بزرگسال، کودک و نوزاد را مشخص کنید."),"ui_type": "passenger_counter"}
     missing_fields = []
 
     if not state.get("origin"):
@@ -94,6 +82,20 @@ def decide_next_step(state: FlightState) -> FlightState:
             ),
             "ui_type": "chat_input"
         }
+    # بررسی وضعیت تعداد مسافران
+    passenger_status = state.get("passenger_status","unknown")
+
+    if passenger_status == "unknown":
+
+        return {
+            "current_step": "ask_passenger_choice","assistant_message": (
+                "آیا می‌خواهید تعداد مسافران را مشخص کنید؟"),"ui_type": "passenger_choice"}
+    if passenger_status == "entering":
+
+        return {
+            "current_step": "enter_passengers","assistant_message": (
+                "تعداد بزرگسال، کودک و نوزاد را مشخص کنید."),"ui_type": "passenger_counter"}
+   
 
     # سپس کلاس پرواز را می‌پرسیم
     if state.get("cabin_class") is None:
