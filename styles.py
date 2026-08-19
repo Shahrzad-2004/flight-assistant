@@ -517,7 +517,152 @@ def inject_cabin_and_passenger_style() -> None:
         unsafe_allow_html=True
     )
 
+def inject_confirmation_style() -> None:
+    """استایل باکس تأیید اطلاعات پرواز و دکمه‌های تأیید/ویرایش."""
 
+    st.markdown(
+        """
+        <style>
+
+        /* باکس اطلاعات پرواز */
+        .confirmation-box {
+            direction: rtl !important;
+            text-align: right !important;
+
+            width: 100%;
+            box-sizing: border-box;
+
+            background: rgba(255, 255, 255, 0.90) !important;
+
+            backdrop-filter: blur(14px) !important;
+            -webkit-backdrop-filter: blur(14px) !important;
+
+            border: 1px solid rgba(255, 255, 255, 0.80);
+            border-radius: 18px;
+
+            padding: 18px 22px;
+            margin-top: 10px;
+            margin-bottom: 14px;
+
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+
+            font-family: 'Vazirmatn', sans-serif !important;
+            color: #111827 !important;
+        }
+
+
+        /* هر خط از اطلاعات */
+        .confirmation-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            align-items: center;
+
+            direction: rtl !important;
+
+            gap: 8px;
+
+            padding: 6px 0;
+
+            font-family: 'Vazirmatn', sans-serif !important;
+            font-size: 15px;
+            color: #111827 !important;
+        }
+
+
+        /* عنوان هر فیلد مثل مبدأ، مقصد و ... */
+        .confirmation-label {
+            font-weight: 700;
+            color: #111827 !important;
+        }
+
+
+        /* مقدار فیلد */
+        .confirmation-value {
+            font-weight: 500;
+            color: #374151 !important;
+        }
+
+
+        /* قرار گرفتن دو دکمه کنار هم */
+        [data-testid="stHorizontalBlock"]:has(.st-key-confirm_flight_button) {
+            direction: rtl !important;
+            flex-direction: row-reverse !important;
+            gap: 10px !important;
+        }
+
+
+        /* دکمه تأیید و دکمه ویرایش */
+        .st-key-confirm_flight_button button,
+        .st-key-edit_flight_button button {
+
+            width: 100% !important;
+            min-height: 48px !important;
+
+            background: rgba(255, 255, 255, 0.45) !important;
+
+            backdrop-filter: blur(14px) !important;
+            -webkit-backdrop-filter: blur(14px) !important;
+
+            border: 1px solid rgba(255, 255, 255, 0.75) !important;
+            border-radius: 15px !important;
+
+            box-shadow:
+                0 5px 18px rgba(31, 41, 55, 0.10),
+                inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+
+            color: #1f2937 !important;
+
+            font-family: 'Vazirmatn', sans-serif !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+
+            direction: rtl !important;
+            text-align: center !important;
+
+            transition: all 0.25s ease !important;
+        }
+
+
+        /* متن داخل دکمه */
+        .st-key-confirm_flight_button button p,
+        .st-key-edit_flight_button button p {
+
+            font-family: 'Vazirmatn', sans-serif !important;
+            color: #1f2937 !important;
+
+            direction: rtl !important;
+            text-align: center !important;
+        }
+
+
+        /* حالت hover */
+        .st-key-confirm_flight_button button:hover,
+        .st-key-edit_flight_button button:hover {
+
+            background: rgba(37, 99, 235, 0.16) !important;
+
+            border-color: rgba(37, 99, 235, 0.45) !important;
+
+            box-shadow:
+                0 8px 22px rgba(37, 99, 235, 0.16),
+                inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+
+            transform: translateY(-2px) !important;
+        }
+
+
+        /* حالت کلیک */
+        .st-key-confirm_flight_button button:active,
+        .st-key-edit_flight_button button:active {
+
+            transform: translateY(0) scale(0.98) !important;
+        }
+
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 def render_header() -> None:
     """رندر کارت اصلی، لوگو، عنوان و زیرعنوان."""
     # هدر

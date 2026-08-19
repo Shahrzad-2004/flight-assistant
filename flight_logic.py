@@ -2,7 +2,7 @@
 منطق استخراج اطلاعات پرواز از پیام کاربر با LLM (Mistral) و ادغام آن
 با وضعیت فعلی مکالمه.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import streamlit as st
@@ -45,15 +45,26 @@ def create_flight_extractor():
 تو بخش استخراج اطلاعات یک دستیار جستجوی پرواز هستی.
 
 تاریخ امروز در ایران: {today}
+اطلاعاتی که از مراحل قبلی مکالمه داریم:
+{current_state}
+ممکن است پیام فعلی کاربر ادامه‌ی درخواست قبلی باشد.
+مثلاً اگر قبلاً مبدأ و مقصد مشخص شده و اکنون کاربر فقط گفته
+«فردا»، این پیام را به‌عنوان تاریخ حرکت همان درخواست قبلی در نظر بگیر.
 
+فقط اطلاعات جدیدی که از پیام فعلی کاربر قابل استخراج است برگردان.
+اطلاعات قبلی را دوباره حدس نزن، چون برنامه آن‌ها را جداگانه نگه می‌دارد.
 وظیفه تو فقط استخراج اطلاعات پرواز از متن کاربر است.
 
 قوانین:
 - هیچ اطلاعاتی را حدس نزن.
 - اگر اطلاعاتی گفته نشده، مقدار آن را null قرار بده.
-
 - نام شهرها را به فارسی و استاندارد برگردان.
 - تاریخ‌های نسبی مانند فردا و پس‌فردا را نسبت به امروز محاسبه کن.
+- اگر کاربر نام یکی از روزهای هفته مانند شنبه، یکشنبه، دوشنبه،
+  سه‌شنبه، چهارشنبه، پنجشنبه یا جمعه را گفت، نزدیک‌ترین تاریخ
+  آینده‌ی آن روز را نسبت به تاریخ امروز محاسبه کن.
+- در این حالت departure_date_raw باید همان عبارت کاربر باشد
+  و departure_date باید تاریخ محاسبه‌شده با فرمت YYYY-MM-DD باشد.
 - departure_date_raw باید عبارت تاریخ داخل پیام کاربر باشد.
 - departure_date و return_date باید به فرمت YYYY-MM-DD باشند.
 - اگر سفر رفت‌وبرگشت بود trip_type برابر round_trip باشد.
@@ -64,19 +75,42 @@ def create_flight_extractor():
   یا فقط مبدأ و مقصد را گفته باشد، باز هم is_flight_request باید true باشد.
 - فقط زمانی is_flight_request را false قرار بده که پیام کاربر
   هیچ ارتباطی با جستجو یا رزرو بلیط هواپیما نداشته باشد.
-- اگر کاربر تعداد بزرگسال، کودک، نوزاد یا تعداد کل مسافران را مشخص کرده بود،
-  passenger_count_provided را true قرار بده.
-- اگر کاربر تعداد مسافران را مشخص نکرده است،
-  adults و children و infants را null قرار بده
-  و passenger_count_provided را false قرار بده.
-
-- اگر کاربر تعداد مسافران را مشخص کرده است،
-  تعداد بزرگسال، کودک و نوزاد را مطابق متن استخراج کن
-  و passenger_count_provided را true قرار بده.
-
+- اگر کاربر هیچ اشاره‌ای به تعداد مسافران نکرده است:
+  adults = null
+  children = null
+  infants = null
+  passenger_count_provided = false
+- اگر کاربر تعداد کل مسافران را مشخص کرد ولی نوع مسافران
+  (بزرگسال، کودک یا نوزاد) را مشخص نکرد، تمام تعداد را بزرگسال در نظر بگیر.
+- مثال:
+  «برای دو نفر بلیط می‌خواهم»
+  adults = 2
+  children = 0
+  infants = 0
+  passenger_count_provided = true
+- مثال:
+  «سه نفر هستیم»
+  adults = 3
+  children = 0
+  infants = 0
+  passenger_count_provided = true
+- اگر کاربر نوع مسافران را مشخص کرد، دقیقاً مطابق متن استخراج کن.
+- مثال:
+  «دو بزرگسال و یک کودک»
+  adults = 2
+  children = 1
+  infants = 0
+  passenger_count_provided = true
+- مثال:
+  «یک بزرگسال و یک نوزاد»
+  adults = 1
+  children = 0
+  infants = 1
+  passenger_count_provided = true
+- عباراتی مانند «یک نفر»، «دو نفر»، «سه نفر»، «۴ نفر»
+  و شکل‌های مشابه همگی بیان صریح تعداد مسافران محسوب می‌شوند.
 - اگر کاربر مثلاً گفت «۲ بزرگسال و یک کودک»،
   adults برابر 2، children برابر 1 و infants برابر 0 باشد.
-
 - هیچ‌وقت به صورت خودکار یک بزرگسال در نظر نگیر.
   مقدار پیش‌فرض یک بزرگسال فقط بعداً و در صورت انتخاب کاربر
   توسط برنامه اعمال می‌شود.
@@ -90,23 +124,100 @@ def create_flight_extractor():
 
     return extraction_prompt | structured_llm
 
+def resolve_departure_date(raw_date: str | None):
 
-def extract_flight_request(user_text: str) -> FlightRequest:
+    if not raw_date:
+        return None
+
+    # یکسان‌سازی متن فارسی
+    text = (
+        raw_date
+        .strip()
+        .replace("\u200c", " ")
+        .replace("ي", "ی")
+        .replace("ك", "ک")
+    )
+
+    text = " ".join(text.split())
+
+    today = datetime.now(
+        ZoneInfo("Asia/Tehran")
+    ).date()
+
+    # پس‌فردا باید قبل از فردا بررسی شود
+    if "پس فردا" in text:
+        return (today + timedelta(days=2)).isoformat()
+
+    if "فردا" in text:
+        return (today + timedelta(days=1)).isoformat()
+
+    if "امروز" in text:
+        return today.isoformat()
+
+    weekdays = {
+        "دوشنبه": 0,
+        "دو شنبه": 0,
+
+        "سه شنبه": 1,
+        "سه‌شنبه": 1,
+
+        "چهارشنبه": 2,
+        "چهار شنبه": 2,
+
+        "پنجشنبه": 3,
+        "پنج شنبه": 3,
+
+        "جمعه": 4,
+
+        "شنبه": 5,
+
+        "یکشنبه": 6,
+        "یک شنبه": 6,
+    }
+
+    for day_name, target_weekday in sorted(
+        weekdays.items(),
+        key=lambda item: len(item[0]),
+        reverse=True
+    ):
+
+        if day_name in text:
+
+            days_ahead = (
+                target_weekday - today.weekday()
+            ) % 7
+
+            target_date = today + timedelta(
+                days=days_ahead
+            )
+
+            return target_date.isoformat()
+
+    return None
+def extract_flight_request(user_text: str,current_state: dict | None = None) -> FlightRequest:
 
     today = datetime.now(
         ZoneInfo("Asia/Tehran")
     ).date().isoformat()
 
     extractor = create_flight_extractor()
-
+    if current_state is None:
+        current_state = {}
     result = extractor.invoke({
         "user_request": user_text,
-        "today": today
+        "today": today,
+        "current_state": current_state
     })
+    raw_date = result.get("departure_date_raw")
 
-    # خروجی json_schema از نوع dict است
+    resolved_date = resolve_departure_date(
+        raw_date
+    )
+
+    if resolved_date is not None:
+        result["departure_date"] = resolved_date
+
     return FlightRequest.model_validate(result)
-
 
 def merge_flight_state(new_request: FlightRequest):
 

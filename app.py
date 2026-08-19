@@ -3,7 +3,8 @@ import uuid
 from pathlib import Path
 
 import streamlit as st
-
+from datetime import datetime
+import jdatetime
 from chat_database import create_tables, save_message, load_messages
 from flight_graph import flight_graph
 
@@ -11,6 +12,7 @@ from styles import (
     inject_background_style,
     inject_main_style,
     inject_cabin_and_passenger_style,
+     inject_confirmation_style,
     render_header,
 )
 from ui_handlers import (
@@ -18,6 +20,8 @@ from ui_handlers import (
     select_cabin_class,
     select_passenger_option,
     save_passenger_counts,
+    confirm_flight,
+    edit_flight,
 )
 from chat_response import handle_user_prompt
 
@@ -44,13 +48,47 @@ def get_base64(file_name):
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
 
+def to_jalali(date_str):
 
+    if not date_str:
+        return "-"
+
+    try:
+        gregorian_date = datetime.strptime(
+            str(date_str),
+            "%Y-%m-%d"
+        ).date()
+
+        jalali_date = jdatetime.date.fromgregorian(
+            date=gregorian_date
+        )
+
+        return jalali_date.strftime("%Y/%m/%d")
+
+    except (ValueError, TypeError):
+        return str(date_str)
+
+def get_cabin_label(cabin_class):
+
+    cabin_labels = {
+        "economy": "اکونومی",
+        "business": "بیزینس",
+        "first": "فرست کلاس",
+        "unspecified": "اهمیت ندارد"
+    }
+
+    return cabin_labels.get(
+        cabin_class,
+        "-"
+    )
 background = get_base64("ee.jpg")
 
 # تزریق استایل‌ها
 inject_background_style(background)
 inject_main_style()
 inject_cabin_and_passenger_style()
+inject_confirmation_style()
+
 
 # هدر
 render_header()
@@ -67,10 +105,7 @@ if "messages" not in st.session_state:
 
     ]
 
-
-# -----------------------------
-# نمایش پیام‌ها
-# -----------------------------
+# ساخت باکس برای پیام ها و نمایش پیام ها در صفحه چت
 
 for message in st.session_state.messages:
 
@@ -79,15 +114,11 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 
-# -----------------------------
-# بررسی نوع رابطی که LangGraph درخواست کرده و ورودی کاربر
-# -----------------------------
-# بررسی نوع رابطی که LangGraph درخواست کرده
+# بررسی نوع رابطی که لنگ گراف درخواست کرده و ورودی کاربر
+# یعنی رابط کاربری فعلی مثلا الان داره شمارنده مسافران رو نشون میده یا باتن های نوع پرواز یا ....
 current_ui = st.session_state.get(
-    "flight_state",
-    {}
-).get("ui_type")
-
+    "flight_state",{}).get("ui_type")
+print("current_ui",current_ui)
 
 if current_ui == "passenger_choice":
 
@@ -119,8 +150,7 @@ if current_ui == "passenger_choice":
     )
 
     scroll_to_bottom()
-
-    # هنگام نمایش دکمه‌ها chat_input نباشد
+    # در این مرحله کادر چت نمایش داده نشود
     prompt = None
 
 elif current_ui == "passenger_counter":
@@ -174,7 +204,6 @@ elif current_ui == "passenger_counter":
     )
 
     scroll_to_bottom()
-
     prompt = None
 
 elif current_ui == "cabin_buttons":
@@ -199,11 +228,11 @@ elif current_ui == "cabin_buttons":
     )
 
     col2.button(
-        "بیزنس",
+        "بیزینس",
         key="business_button",
         use_container_width=True,
         on_click=select_cabin_class,
-        args=("business", "بیزنس")
+        args=("business", "بیزینس")
     )
 
     col3.button(
@@ -222,9 +251,80 @@ elif current_ui == "cabin_buttons":
         args=("unspecified", "اهمیت ندارد")
     )
     scroll_to_bottom()
-    # در این مرحله کادر چت نمایش داده نشود
     prompt = None
+elif current_ui == "confirmation":
 
+    flight_state = st.session_state["flight_state"]
+
+    st.markdown(
+        """
+    <div class="cabin-title">
+    لطفاً اطلاعات پرواز را بررسی کنید:
+    </div>
+    """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f"""
+    <div class="confirmation-box">
+    <div class="confirmation-row">
+    <span class="confirmation-label">مبدأ:</span>
+    <span class="confirmation-value">{flight_state.get("origin") or "-"}</span>
+    </div>
+
+    <div class="confirmation-row">
+    <span class="confirmation-label">مقصد:</span>
+    <span class="confirmation-value">{flight_state.get("destination") or "-"}</span>
+    </div>
+
+    <div class="confirmation-row">
+    <span class="confirmation-label">تاریخ حرکت:</span>
+    <span class="confirmation-value">{to_jalali(flight_state.get("departure_date"))}</span>
+    </div>
+
+    <div class="confirmation-row">
+    <span class="confirmation-label">بزرگسال:</span>
+    <span class="confirmation-value">{flight_state.get("adults", 0)}</span>
+    </div>
+
+    <div class="confirmation-row">
+    <span class="confirmation-label">کودک:</span>
+    <span class="confirmation-value">{flight_state.get("children", 0)}</span>
+    </div>
+
+    <div class="confirmation-row">
+    <span class="confirmation-label">نوزاد:</span>
+    <span class="confirmation-value">{flight_state.get("infants", 0)}</span>
+    </div>
+
+    <div class="confirmation-row">
+    <span class="confirmation-label">کلاس پرواز:</span>
+    <span class="confirmation-value">{get_cabin_label(flight_state.get("cabin_class"))}</span>
+    </div>
+    </div>
+    """,
+        unsafe_allow_html=True
+    )
+    col1, col2 = st.columns(2)
+
+    col1.button(
+        "تأیید و جستجوی پرواز",
+        key="confirm_flight_button",
+        use_container_width=True,
+        on_click=confirm_flight
+    )
+
+    col2.button(
+        "ویرایش اطلاعات",
+        key="edit_flight_button",
+        use_container_width=True,
+        on_click=edit_flight
+    )
+
+    scroll_to_bottom()
+
+    prompt = None
 else:
     prompt = st.chat_input(
         "درخواست خود را بنویسید"
@@ -235,9 +335,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# -----------------------------
-# پاسخ ربات
-# -----------------------------
 
 if prompt:
 
