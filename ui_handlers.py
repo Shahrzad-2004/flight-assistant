@@ -5,12 +5,16 @@
 همه‌ی این توابع state چت را در st.session_state به‌روزرسانی می‌کنند
 و Graph پروازها (flight_graph) را دوباره اجرا می‌کنند.
 """
+import uuid
 import streamlit as st
 import streamlit.components.v1 as components
 
 from flight_graph import flight_graph
-from chat_database import save_message
-
+from chat_database import save_message, load_messages, delete_session
+WELCOME_MESSAGE = (
+    "سلام من دستیارهوشمند رزرو بلیط هستم. "
+    "چطور می توانم در رزرو بلیط کمکتان کنم ؟ "
+)
 
 def scroll_to_bottom():
 
@@ -286,3 +290,50 @@ def edit_flight():
         "assistant",
         assistant_message
     )
+def toggle_sidebar():
+    """باز یا بسته کردن نوار کناری کشویی با دکمه شناور بالای صفحه."""
+    st.session_state.sidebar_open = not st.session_state.get(
+        "sidebar_open",
+        True
+    )
+
+
+def start_new_conversation():
+    """ساخت یک گفتگوی تازه و خالی و فعال کردن آن."""
+    st.session_state.session_id = str(uuid.uuid4())
+
+    st.session_state.messages = [
+        {
+            "role": "assistant",
+            "content": WELCOME_MESSAGE
+        }
+    ]
+
+    st.session_state.flight_state = {}
+
+
+def switch_session(session_id: str):
+    """جابه‌جایی به یکی از گفتگوهای ذخیره‌شده و بارگذاری تاریخچه آن."""
+    st.session_state.session_id = session_id
+
+    messages = load_messages(session_id)
+
+    if not messages:
+        messages = [
+            {
+                "role": "assistant",
+                "content": WELCOME_MESSAGE
+            }
+        ]
+
+    st.session_state.messages = messages
+    st.session_state.flight_state = {}
+
+
+def remove_session(session_id: str):
+    """حذف یک گفتگوی ذخیره‌شده از پایگاه داده (به‌صورت تکی)."""
+    delete_session(session_id)
+
+    # اگر گفتگوی فعلی حذف شد، یک گفتگوی جدید و خالی بساز
+    if session_id == st.session_state.get("session_id"):
+        start_new_conversation()

@@ -5,14 +5,15 @@ from pathlib import Path
 import streamlit as st
 from datetime import datetime
 import jdatetime
-from chat_database import create_tables, save_message, load_messages
+from chat_database import create_tables, save_message, load_messages,list_sessions,delete_session
 from flight_graph import flight_graph
 
 from styles import (
     inject_background_style,
     inject_main_style,
     inject_cabin_and_passenger_style,
-     inject_confirmation_style,
+    inject_confirmation_style,
+    inject_sidebar_style,
     render_header,
 )
 from ui_handlers import (
@@ -22,6 +23,11 @@ from ui_handlers import (
     save_passenger_counts,
     confirm_flight,
     edit_flight,
+    start_new_conversation,
+    switch_session,
+    remove_session,
+    toggle_sidebar,
+
 )
 from chat_response import handle_user_prompt
 
@@ -29,13 +35,14 @@ create_tables()
 
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
-
+if "sidebar_open" not in st.session_state:
+    st.session_state.sidebar_open = True
 # تنظیمات صفحه
 st.set_page_config(
     page_title="دستیار هوشمند بلیط",
     page_icon="✈️",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 
@@ -88,8 +95,72 @@ inject_background_style(background)
 inject_main_style()
 inject_cabin_and_passenger_style()
 inject_confirmation_style()
+inject_sidebar_style(st.session_state.sidebar_open)
+# -----------------------------
+# دکمه شناور باز/بسته کردن نوار کناری (همیشه در دسترس)
+# -----------------------------
+st.button(
+    "☰",
+    key="sidebar_toggle_button",
+    on_click=toggle_sidebar
+)
 
+# -----------------------------
+# نوار کناری: گفتگوی جدید + فهرست گفتگوهای اخیر
+# -----------------------------
+with st.sidebar:
 
+    with st.container(key="sidebar_header_box"):
+
+        st.markdown(
+            '<div class="sidebar-title">✈️ دستیار هوشمند بلیط</div>',
+            unsafe_allow_html=True
+        )
+
+        st.button(
+            "گفتگوی جدید 💬",
+            key="new_chat_button",
+            use_container_width=True,
+            on_click=start_new_conversation
+        )
+
+    st.markdown(
+        '<div class="sidebar-section-title">گفتگوهای اخیر</div>',
+        unsafe_allow_html=True
+    )
+
+    sessions = list_sessions()
+
+    if not sessions:
+
+        st.markdown(
+            '<div class="sidebar-empty">هنوز گفتگویی ذخیره نشده است.</div>',
+            unsafe_allow_html=True
+        )
+
+    for session in sessions:
+
+        row_label, row_delete = st.columns([5, 1])
+
+        is_active = session["session_id"] == st.session_state.session_id
+
+        with row_label:
+            st.button(
+                ("🟦 " if is_active else "💬 ") + session["title"],
+                key=f"session_{session['session_id']}",
+                use_container_width=True,
+                on_click=switch_session,
+                args=(session["session_id"],)
+            )
+
+        with row_delete:
+            st.button(
+                "🗑️",
+                key=f"delete_{session['session_id']}",
+                use_container_width=True,
+                on_click=remove_session,
+                args=(session["session_id"],)
+            )
 # هدر
 render_header()
 

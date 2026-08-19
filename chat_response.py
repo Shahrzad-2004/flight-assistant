@@ -40,7 +40,8 @@ def handle_user_prompt(prompt: str) -> None:
                         "MERGED FLIGHT STATE:",
                         current_state
                     )
-
+                    if previous_state.get("confirmation_status") == "editing":
+                        current_state["confirmation_status"] = "pending"
                     graph_result = flight_graph.invoke(current_state)
 
                     st.session_state["flight_state"] = graph_result
