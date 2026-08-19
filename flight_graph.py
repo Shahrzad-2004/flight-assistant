@@ -51,31 +51,25 @@ class FlightState(TypedDict, total=False):
         "confirmation",
         "search"
     ]
+    confirmation_status: Literal[
+        "pending",
+        "confirmed",
+        "editing"
+    ]
 def decide_next_step(state: FlightState) -> FlightState:
     # بررسی وضعیت تعداد مسافران
-    passenger_status = state.get(
-        "passenger_status",
-        "unknown"
-    )
+    passenger_status = state.get("passenger_status","unknown")
 
     if passenger_status == "unknown":
 
         return {
-            "current_step": "ask_passenger_choice",
-            "assistant_message": (
-                "آیا می‌خواهید تعداد مسافران را مشخص کنید؟"
-            ),
-            "ui_type": "passenger_choice"
-        }
+            "current_step": "ask_passenger_choice","assistant_message": (
+                "آیا می‌خواهید تعداد مسافران را مشخص کنید؟"),"ui_type": "passenger_choice"}
     if passenger_status == "entering":
 
         return {
-            "current_step": "enter_passengers",
-            "assistant_message": (
-                "تعداد بزرگسال، کودک و نوزاد را مشخص کنید."
-            ),
-            "ui_type": "passenger_counter"
-        }
+            "current_step": "enter_passengers","assistant_message": (
+                "تعداد بزرگسال، کودک و نوزاد را مشخص کنید."),"ui_type": "passenger_counter"}
     missing_fields = []
 
     if not state.get("origin"):
@@ -95,7 +89,8 @@ def decide_next_step(state: FlightState) -> FlightState:
         return {
             "current_step": "ask_required_fields",
             "assistant_message": (
-                f"لطفاً {fields_text} را هم مشخص کنید."
+                f"برای جستجوی پرواز، لطفاً "
+                f"{fields_text} را هم مشخص کنید."
             ),
             "ui_type": "chat_input"
         }
@@ -112,6 +107,33 @@ def decide_next_step(state: FlightState) -> FlightState:
         }
 
     # تمام اطلاعات تکمیل شده‌اند
+    confirmation_status = state.get(
+    "confirmation_status",
+    "pending"
+)
+
+    if confirmation_status == "confirmed":
+
+        return {
+            "current_step": "search",
+            "assistant_message": (
+                "اطلاعات تأیید شد. در حال جستجوی پروازها..."
+            ),
+            "ui_type": "search"
+        }
+
+
+    if confirmation_status == "editing":
+
+        return {
+            "current_step": "edit_request",
+            "assistant_message": (
+                "چه اطلاعاتی را می‌خواهید تغییر دهید؟"
+            ),
+            "ui_type": "chat_input"
+        }
+
+
     return {
         "current_step": "confirmation",
         "assistant_message": (
@@ -123,21 +145,11 @@ def decide_next_step(state: FlightState) -> FlightState:
 graph_builder = StateGraph(FlightState)
 
 # افزودن نود تشخیص مرحله بعد
-graph_builder.add_node(
-    "decide_next_step",
-    decide_next_step
-)
+graph_builder.add_node("decide_next_step",decide_next_step)
 
 # مسیر شروع و پایان
-graph_builder.add_edge(
-    START,
-    "decide_next_step"
-)
-
-graph_builder.add_edge(
-    "decide_next_step",
-    END
-)
+graph_builder.add_edge(START,"decide_next_step")
+graph_builder.add_edge("decide_next_step",END)
 
 # آماده‌سازی گراف برای اجرا
 flight_graph = graph_builder.compile()
