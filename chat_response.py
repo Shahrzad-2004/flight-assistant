@@ -1,5 +1,5 @@
 import time
-import streamlit as st
+import streamlit as st # type: ignore
 from flight_graph import flight_graph
 from chat_database import save_message
 from flight_logic import extract_flight_request, merge_flight_state

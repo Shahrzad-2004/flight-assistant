@@ -2,9 +2,9 @@ import base64
 import uuid
 from pathlib import Path
 
-import streamlit as st
+import streamlit as st # type: ignore
 from datetime import datetime
-import jdatetime
+import jdatetime # type: ignore
 from chat_database import create_tables, save_message, load_messages,list_sessions,delete_session
 from flight_graph import flight_graph
 
