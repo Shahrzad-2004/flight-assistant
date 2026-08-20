@@ -1,7 +1,4 @@
-"""
-استایل‌ها و ظاهر برنامه (CSS تزریق‌شده با st.markdown) و رندر هدر.
-"""
-import streamlit as st
+import streamlit as st # type: ignore
 
 
 def inject_background_style(background: str) -> None:
