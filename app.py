@@ -7,6 +7,10 @@ from datetime import datetime
 import jdatetime # type: ignore
 from chat_database import create_tables, save_message, load_messages,list_sessions,delete_session
 from flight_graph import flight_graph
+from authentication import render_auth_buttons,handle_google_callback
+from user_database import create_users_table,get_user_by_id
+from cookie_manager import cookies
+
 
 from styles import (
     inject_background_style,
@@ -15,6 +19,12 @@ from styles import (
     inject_confirmation_style,
     inject_sidebar_style,
     render_header,
+    inject_login_style,
+    inject_auth_style,
+    inject_user_box_style,
+  
+
+
 )
 from ui_handlers import (
     scroll_to_bottom,
@@ -27,10 +37,11 @@ from ui_handlers import (
     switch_session,
     remove_session,
     toggle_sidebar,
+    logout_user,        # جدید
 
 )
 from chat_response import handle_user_prompt
-
+create_users_table()
 create_tables()
 
 if "session_id" not in st.session_state:
@@ -62,9 +73,7 @@ def to_jalali(date_str):
 
     try:
         gregorian_date = datetime.strptime(
-            str(date_str),
-            "%Y-%m-%d"
-        ).date()
+            str(date_str),"%Y-%m-%d").date()
 
         jalali_date = jdatetime.date.fromgregorian(
             date=gregorian_date
@@ -90,24 +99,55 @@ def get_cabin_label(cabin_class):
     )
 background = get_base64("ee.jpg")
 
-# تزریق استایل‌ها
+# استایل‌ها
 inject_background_style(background)
 inject_main_style()
 inject_cabin_and_passenger_style()
 inject_confirmation_style()
 inject_sidebar_style(st.session_state.sidebar_open)
-# -----------------------------
-# دکمه شناور باز/بسته کردن نوار کناری (همیشه در دسترس)
-# -----------------------------
+inject_login_style()
+inject_auth_style()
+inject_user_box_style()
+
+
+
+handle_google_callback()
+
+
+# بازیابی کاربر از Cookie
+if "user" not in st.session_state:
+
+    if "user_id" in cookies:
+
+        user = get_user_by_id(
+            int(cookies["user_id"])
+        )
+
+        if user:
+            st.session_state.user = user
+
+
+
+# اگر هنوز کاربر وارد نشده
+if "user" not in st.session_state:
+
+    render_header()
+    render_auth_buttons()
+
+    st.stop()
+
+
+# دکمه شناور باز و بسته کردن نوار کناری 
+
 st.button(
     "☰",
     key="sidebar_toggle_button",
     on_click=toggle_sidebar
 )
 
-# -----------------------------
-# نوار کناری: گفتگوی جدید + فهرست گفتگوهای اخیر
-# -----------------------------
+
+# نوار کناری: گفتگوی جدید و فهرست گفتگوهای اخیر
+
 with st.sidebar:
 
     with st.container(key="sidebar_header_box"):
@@ -118,7 +158,7 @@ with st.sidebar:
         )
 
         st.button(
-            "گفتگوی جدید 💬",
+            "گفتگوی جدید",
             key="new_chat_button",
             use_container_width=True,
             on_click=start_new_conversation
@@ -146,7 +186,7 @@ with st.sidebar:
 
         with row_label:
             st.button(
-                ("🟦 " if is_active else "💬 ") + session["title"],
+                ("🧳 " if is_active else "💬 ") + session["title"],
                 key=f"session_{session['session_id']}",
                 use_container_width=True,
                 on_click=switch_session,
@@ -161,6 +201,43 @@ with st.sidebar:
                 on_click=remove_session,
                 args=(session["session_id"],)
             )
+    # باکس کاربر: کل باکس کلیک‌پذیره (details/summary) و منوی خروج را باز می‌کند
+    with st.container(key="user_box_container"):
+
+        user = st.session_state.user
+        name = user.get("name") or "کاربر"
+        email = user.get("email") or "-"
+        avatar_url = user.get("picture")
+
+        if avatar_url:
+            avatar_html = f'<img src="{avatar_url}" class="user-avatar-img" />'
+        else:
+            initial = (name[0] if name else "?").upper()
+            avatar_html = f'<div class="user-avatar-fallback">{initial}</div>'
+
+        st.markdown(
+        f"""
+        <details class="user-details">
+        <summary class="user-summary">
+        {avatar_html}
+        <div class="user-box-text">
+        <div class="user-box-name">{name}</div>
+        <div class="user-box-email">{email}</div>
+        </div>
+        <span class="user-chevron">▾</span>
+        </summary>
+        </details>
+        """,
+            unsafe_allow_html=True
+        )
+
+        st.button(
+            "🚪 خروج از حساب",
+            key="logout_button",
+            use_container_width=True,
+            on_click=logout_user
+        )
+
 # هدر
 render_header()
 
@@ -409,7 +486,8 @@ st.markdown(
 
 if prompt:
 
-    # پیام کاربر
+    # پیام کاربر ذخیره شود
+    #پیام ابتدا در حافظه موقت سپس در دیتابیس ذخیره می شود
     st.session_state.messages.append(
         {
             "role": "user",

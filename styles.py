@@ -84,12 +84,12 @@ def inject_main_style() -> None:
         width:700px;
         max-width:calc(100vw - 40px);
         box-sizing:border-box;
+        
+        margin: 0 auto 30px auto;
+        
+        padding:50px;
     
-        margin: 0 auto;
-    
-        padding:35px;
-    
-        box-shadow:0 20px 60px rgba(0,0,0,.18);
+        box-shadow:0 20px 40px rgba(0,0,0,.18);
     
         border:1px solid rgba(255,255,255,.75);
     
@@ -876,3 +876,315 @@ def render_header() -> None:
     </div>
     
     """, unsafe_allow_html=True)
+
+def inject_login_style():
+
+    st.markdown(
+    """
+    <style>
+
+
+    .email-login-card{
+
+        background:rgba(255,255,255,0.45);
+
+        backdrop-filter:blur(15px);
+        -webkit-backdrop-filter:blur(15px);
+
+        border:1px solid rgba(255,255,255,0.7);
+
+        border-radius:22px;
+
+        padding:25px;
+
+        margin:25px auto;
+
+        width:400px;
+
+        box-shadow:
+        0 10px 35px rgba(0,0,0,0.15);
+
+    }
+
+
+    .email-login-title{
+
+        text-align:center;
+
+        font-size:24px;
+
+        font-weight:800;
+
+        color:#111827;
+
+        font-family:'Vazirmatn';
+
+    }
+
+
+    div[data-testid="stTextInput"] input{
+
+        background:rgba(255,255,255,0.6)!important;
+
+        border-radius:14px!important;
+
+        border:1px solid rgba(255,255,255,0.8)!important;
+
+        font-family:'Vazirmatn'!important;
+
+    }
+
+
+    .st-key-email_submit button,
+    .st-key-email_login_button button{
+
+        background:rgba(255,255,255,0.45)!important;
+
+        backdrop-filter:blur(12px);
+
+        color:#111827!important;
+
+        border-radius:15px!important;
+
+        border:1px solid rgba(255,255,255,0.7)!important;
+
+        font-weight:700!important;
+
+    }
+
+
+    </style>
+    """,
+    unsafe_allow_html=True
+    )
+
+
+def inject_auth_style() -> None:
+    st.markdown(
+        """
+        <style>
+
+        .auth-btn-link{
+            display:flex !important;
+            align-items:center;
+            justify-content:center;
+            width:100%;
+            height:58px;
+            box-sizing:border-box;
+
+            text-decoration:none !important;
+
+            background: rgba(255, 255, 255, 0.45) !important;
+            backdrop-filter: blur(14px) !important;
+            -webkit-backdrop-filter: blur(14px) !important;
+
+            border: 1px solid rgba(255, 255, 255, 0.75) !important;
+            border-radius: 18px !important;
+
+            box-shadow:
+                0 5px 18px rgba(31, 41, 55, 0.10),
+                inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+
+            color: #1f2937 !important;
+            font-family: 'Vazirmatn', sans-serif !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+
+            transition: all 0.25s ease !important;
+        }
+        .st-key-email_login_button button p{
+            font-family:'Vazirmatn', sans-serif !important;
+            font-size:16px !important;
+            font-weight:700 !important;
+            color:#1f2937 !important;
+            text-align:center !important;
+        }
+        .auth-button-link{
+            font-weight:700 !important;
+        }
+        .auth-btn-link:hover{
+            background: rgba(37, 99, 235, 0.16) !important;
+            border-color: rgba(37, 99, 235, 0.45) !important;
+            box-shadow:
+                0 8px 22px rgba(37, 99, 235, 0.16),
+                inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+            transform: translateY(-2px) !important;
+        }
+
+        .st-key-email_login_button button{
+            width:100% !important;
+            min-height:58px !important;
+
+            background: rgba(255, 255, 255, 0.45) !important;
+            backdrop-filter: blur(14px) !important;
+            -webkit-backdrop-filter: blur(14px) !important;
+
+            border: 1px solid rgba(255, 255, 255, 0.75) !important;
+            border-radius: 18px !important;
+
+            box-shadow:
+                0 5px 18px rgba(31, 41, 55, 0.10),
+                inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+
+            color: #1f2937 !important;
+            font-family: 'Vazirmatn', sans-serif !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+
+            transition: all 0.25s ease !important;
+        }
+
+        .st-key-email_login_button button:hover{
+            background: rgba(37, 99, 235, 0.16) !important;
+            border-color: rgba(37, 99, 235, 0.45) !important;
+            box-shadow:
+                0 8px 22px rgba(37, 99, 235, 0.16),
+                inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+            transform: translateY(-2px) !important;
+        }
+
+        .st-key-email_login_button button p{
+            font-family: 'Vazirmatn', sans-serif !important;
+            color: #1f2937 !important;
+            text-align:center !important;
+        }
+
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+
+def inject_user_box_style() -> None:
+    """باکس کاربر به‌صورت فیکس در پایین سایدبار."""
+    st.markdown(
+        """
+    <style>
+
+    /* جای خالی ته لیست گفتگوها تا زیر باکس کاربر قایم نشه */
+    [data-testid="stSidebarUserContent"]{
+        padding-bottom: 90px !important;
+    }
+
+    .st-key-user_box_container{
+        position: fixed !important;
+        bottom: 18px !important;
+        left: 0 !important;
+        width: 21rem !important;   /* عرض پیش‌فرض سایدبار Streamlit */
+        padding: 10px 16px 16px 16px !important;
+        box-sizing: border-box !important;
+        background: rgba(255,255,255,.97) !important;
+        backdrop-filter: blur(16px);
+        z-index: 999998 !important;
+    }
+
+    .user-details{
+        background:#ffffff;
+        border:1px solid var(--soft-blue-border, #a9cdf0);
+        border-radius:16px;
+        padding:10px 14px;
+        box-shadow:0 4px 14px rgba(111,163,214,.12);
+    }
+
+    .user-summary{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        cursor:pointer;
+        list-style:none;
+        direction:rtl;
+        outline:none;
+    }
+
+    .user-summary::-webkit-details-marker{ display:none; }
+    .user-summary::marker{ content:""; }
+
+    .user-chevron{
+        margin-right:auto;
+        font-size:12px;
+        color:#9ca3af;
+        transition: transform .2s ease;
+    }
+
+    .user-details[open] .user-chevron{
+        transform: rotate(180deg);
+    }
+
+    .user-avatar-img{
+        width:40px;
+        height:40px;
+        border-radius:50%;
+        object-fit:cover;
+        border:1px solid var(--soft-blue-border, #a9cdf0);
+        flex-shrink:0;
+    }
+
+    .user-avatar-fallback{
+        width:40px;
+        height:40px;
+        border-radius:50%;
+        background:var(--soft-blue, #6fa3d6);
+        color:white;
+        font-family:'Vazirmatn', sans-serif !important;
+        font-weight:800;
+        font-size:16px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        flex-shrink:0;
+    }
+
+    .user-box-text{ overflow:hidden; text-align:right; }
+
+    .user-box-name{
+        font-family:'Vazirmatn', sans-serif !important;
+        font-weight:700;
+        font-size:14px;
+        color:#1f2937;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+    }
+
+    .user-box-email{
+        font-family:'Vazirmatn', sans-serif !important;
+        font-weight:400;
+        font-size:12px;
+        color:#6b7280;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        direction:ltr;
+        text-align:right;
+    }
+
+    .st-key-logout_button{
+        display:none !important;
+        margin-top:10px !important;
+    }
+
+    .st-key-user_box_container:has(.user-details[open]) .st-key-logout_button{
+        display:block !important;
+    }
+
+    .st-key-logout_button button{
+        width:100% !important;
+        background: rgba(239,68,68,.10) !important;
+        color:#ef4444 !important;
+        border:1px solid rgba(239,68,68,.35) !important;
+    }
+
+    .st-key-logout_button button:hover{
+        background: rgba(239,68,68,.20) !important;
+    }
+
+    .st-key-logout_button button p{
+        color:#ef4444 !important;
+        font-weight:700 !important;
+    }
+
+    </style>
+    """,
+        unsafe_allow_html=True,
+    )

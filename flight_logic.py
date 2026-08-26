@@ -12,10 +12,7 @@ from langchain_core.prompts import ChatPromptTemplate # type: ignore
 from models import FlightRequest
 
 
-# -----------------------------
-# ساخت LLM استخراج‌کننده
-# -----------------------------
-
+# ساخت ال ال ام استخراج‌کننده
 @st.cache_resource
 def create_flight_extractor():
 
@@ -32,7 +29,7 @@ def create_flight_extractor():
         api_key=api_key,
         max_retries=4
     )
-    # روش سازگار با نسخه جدید LangChain
+    #ساختار پاسخ ال ال ام
     structured_llm = llm.with_structured_output(
         schema=FlightRequest.model_json_schema(),
         method="json_schema"
@@ -277,9 +274,7 @@ def resolve_departure_date(raw_date: str | None):
     return None
 def extract_flight_request(user_text: str,current_state: dict | None = None) -> FlightRequest:
 
-    today = datetime.now(
-        ZoneInfo("Asia/Tehran")
-    ).date().isoformat()
+    today = datetime.now(ZoneInfo("Asia/Tehran")).date().isoformat()
 
     extractor = create_flight_extractor()
     if current_state is None:

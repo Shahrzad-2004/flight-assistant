@@ -6,15 +6,14 @@ from flight_logic import extract_flight_request, merge_flight_state
 
 
 def handle_user_prompt(prompt: str) -> None:
-    """پردازش پیام کاربر و افزودن پاسخ دستیار به تاریخچه‌ی چت.
-
-    """
+    """پردازش پیام کاربر و افزودن پاسخ دستیار به تاریخچه‌ی چت."""
     # نمایش حالت تایپ کردن
     with st.chat_message("assistant"):
 
             with st.spinner("✈️ در حال بررسی درخواست شما..."):
                 time.sleep(1.5)
                 try:
+                    #ببینیم چه اطلاعاتی از این کاربر داریم یعنی اگر در همین مکالمه مبدا و مقصد مشخص شده و در پرامپتی دیگر تاریخ حرکت را گفته متوجه شویم راجب یک پرواز صحبت می شود
                     previous_state = st.session_state.get(
                         "flight_state",
                         {}
@@ -31,17 +30,20 @@ def handle_user_prompt(prompt: str) -> None:
                     flight_request.infants,
                     "Provided:",
                     flight_request.passenger_count_provided
+
                     )
+                    #مرج کردن اطلاعات 
                     current_state = merge_flight_state(
                         flight_request
                     )
-
                     print(
                         "MERGED FLIGHT STATE:",
                         current_state
                     )
+
                     if previous_state.get("confirmation_status") == "editing":
                         current_state["confirmation_status"] = "pending"
+                        
                     graph_result = flight_graph.invoke(current_state)
 
                     st.session_state["flight_state"] = graph_result
