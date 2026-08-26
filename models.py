@@ -1,6 +1,3 @@
-"""
-مدل‌های پای دنتیک برای ساختار اطلاعات پرواز.
-"""
 from typing import Optional, Literal
 from pydantic import BaseModel, Field
 

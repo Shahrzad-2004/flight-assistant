@@ -9,6 +9,7 @@ import uuid
 import streamlit as st
 import streamlit.components.v1 as components
 
+from cookie_manager import cookies
 from flight_graph import flight_graph
 from chat_database import save_message, load_messages, delete_session
 WELCOME_MESSAGE = (
@@ -337,3 +338,14 @@ def remove_session(session_id: str):
     # اگر گفتگوی فعلی حذف شد، یک گفتگوی جدید و خالی بساز
     if session_id == st.session_state.get("session_id"):
         start_new_conversation()
+
+
+def logout_user():
+    """خروج کاربر از حساب: پاک کردن session و کوکی."""
+    st.session_state.pop("user", None)
+
+    try:
+        del cookies["user_id"]
+        cookies.save()
+    except KeyError:
+        pass
