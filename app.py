@@ -2,12 +2,12 @@ import base64
 import uuid
 from pathlib import Path
 
-import streamlit as st # type: ignore
+import streamlit as st
 from datetime import datetime
-import jdatetime # type: ignore
+import jdatetime
 from chat_database import create_tables, save_message, load_messages,list_sessions,delete_session
 from flight_graph import flight_graph
-from authentication import render_auth_buttons,handle_google_callback
+from authentication import render_auth_buttons,handle_google_callback, get_google_auth_url
 from user_database import create_users_table,get_user_by_id
 from cookie_manager import cookies
 
@@ -37,12 +37,16 @@ from ui_handlers import (
     switch_session,
     remove_session,
     toggle_sidebar,
-    logout_user,        # جدید
+    logout_user,      
 
 )
 from chat_response import handle_user_prompt
-create_users_table()
-create_tables()
+@st.cache_resource
+def initialize_database():
+    create_users_table()
+    create_tables()
+
+initialize_database()
 
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
@@ -60,7 +64,7 @@ st.set_page_config(
 # خواندن عکس
 BASE_DIR = Path(__file__).parent
 
-
+@st.cache_data
 def get_base64(file_name):
     path = BASE_DIR / file_name
     with open(path, "rb") as f:
@@ -115,7 +119,8 @@ handle_google_callback()
 
 
 # بازیابی کاربر از Cookie
-if "user" not in st.session_state:
+
+if "user" not in st.session_state and not st.session_state.get("just_logged_out"):
 
     if "user_id" in cookies:
 
@@ -126,15 +131,17 @@ if "user" not in st.session_state:
         if user:
             st.session_state.user = user
 
+# فلگ خروج فقط برای همون یک rerun بلافاصله بعد از کلیک لازمه
+st.session_state["just_logged_out"] = False
 
-
-# اگر هنوز کاربر وارد نشده
 if "user" not in st.session_state:
 
-    render_header()
-    render_auth_buttons()
+    google_url = get_google_auth_url()
 
-    st.stop()
+    st.markdown(
+        f'<a href="{google_url}" target="_self" class="guest-login-fixed">ورود / ثبت‌ نام</a>',
+        unsafe_allow_html=True
+    )
 
 
 # دکمه شناور باز و بسته کردن نوار کناری 
@@ -156,7 +163,7 @@ with st.sidebar:
             '<div class="sidebar-title">✈️ دستیار هوشمند بلیط</div>',
             unsafe_allow_html=True
         )
-
+        
         st.button(
             "گفتگوی جدید",
             key="new_chat_button",
@@ -169,7 +176,8 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-    sessions = list_sessions()
+    current_user_id = st.session_state.get("user", {}).get("id")
+    sessions = list_sessions(user_id=current_user_id)
 
     if not sessions:
 
@@ -202,42 +210,62 @@ with st.sidebar:
                 args=(session["session_id"],)
             )
     # باکس کاربر: کل باکس کلیک‌پذیره (details/summary) و منوی خروج را باز می‌کند
-    with st.container(key="user_box_container"):
+    if "user" in st.session_state:
 
-        user = st.session_state.user
-        name = user.get("name") or "کاربر"
-        email = user.get("email") or "-"
-        avatar_url = user.get("picture")
+        with st.container(key="user_box_container"):
 
-        if avatar_url:
-            avatar_html = f'<img src="{avatar_url}" class="user-avatar-img" />'
-        else:
-            initial = (name[0] if name else "?").upper()
-            avatar_html = f'<div class="user-avatar-fallback">{initial}</div>'
+            user = st.session_state.user
+            name = user.get("name") or "کاربر"
+            email = user.get("email") or "-"
+            avatar_url = user.get("picture")
 
-        st.markdown(
-        f"""
-        <details class="user-details">
-        <summary class="user-summary">
-        {avatar_html}
-        <div class="user-box-text">
-        <div class="user-box-name">{name}</div>
-        <div class="user-box-email">{email}</div>
-        </div>
-        <span class="user-chevron">▾</span>
-        </summary>
-        </details>
-        """,
-            unsafe_allow_html=True
-        )
+            if avatar_url:
+                avatar_html = f'<img src="{avatar_url}" class="user-avatar-img" />'
+            else:
+                initial = (name[0] if name else "?").upper()
+                avatar_html = f'<div class="user-avatar-fallback">{initial}</div>'
 
-        st.button(
-            "🚪 خروج از حساب",
-            key="logout_button",
-            use_container_width=True,
-            on_click=logout_user
-        )
+            st.markdown(
+                f"""
+                <details class="user-details">
+                <summary class="user-summary">
+                {avatar_html}
+                <div class="user-box-text">
+                <div class="user-box-name">{name}</div>
+                <div class="user-box-email">{email}</div>
+                </div>
+                <span class="user-chevron">▾</span>
+                </summary>
+                </details>
+                """,
+                unsafe_allow_html=True
+            )
 
+            st.button(
+                "🚪 خروج از حساب",
+                key="logout_button",
+                use_container_width=True,
+                on_click=logout_user
+            )
+
+    else:
+
+        with st.container(key="user_box_container"):
+
+            st.markdown(
+            """
+            <div class="user-details guest-user-details">
+            <div class="user-summary guest-user-summary">
+            <div class="user-avatar-fallback">👤</div>
+
+            <div class="user-box-text">
+            <div class="user-box-name">مهمان</div>
+            </div>
+            </div>
+            </div>
+                """,
+                unsafe_allow_html=True
+            )
 # هدر
 render_header()
 
@@ -497,7 +525,8 @@ if prompt:
     save_message(
     st.session_state.session_id,
     "user",
-    prompt
+    prompt,
+    user_id=st.session_state.get("user", {}).get("id")
     )
 
     with st.chat_message("user"):

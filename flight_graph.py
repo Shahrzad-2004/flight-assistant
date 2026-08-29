@@ -1,5 +1,5 @@
 from typing import TypedDict, Optional, Literal
-from langgraph.graph import StateGraph, START, END # type: ignore
+from langgraph.graph import StateGraph, START, END
 
 
 class FlightState(TypedDict, total=False):

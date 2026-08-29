@@ -1,4 +1,4 @@
-import streamlit as st # type: ignore
+import streamlit as st
 
 
 def inject_background_style(background: str) -> None:
@@ -695,7 +695,7 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
     }}
 
     [data-testid="stSidebar"] > div{{
-        padding-top:70px;
+        padding-top:20px;
     }}
 
     /* مخفی کردن دکمه‌های داخلی و پیش‌فرض خود Streamlit برای
@@ -1049,6 +1049,90 @@ def inject_auth_style() -> None:
             text-align:center !important;
         }
 
+
+        /* دکمه ورود / ثبت نام مهمان */
+
+/* دکمه ورود / ثبت نام مهمان */
+
+.guest-login-fixed{
+    position:fixed !important;
+    top:20px !important;
+    right:30px !important;
+    z-index:999999 !important;
+
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+
+    width:180px !important;
+    min-height:42px !important;
+    box-sizing:border-box !important;
+
+    background:rgba(255,255,255,0.35) !important;
+
+    backdrop-filter:blur(14px) !important;
+    -webkit-backdrop-filter:blur(14px) !important;
+
+    border:1px solid rgba(255,255,255,0.75) !important;
+    border-radius:16px !important;
+
+    box-shadow:
+        0 5px 18px rgba(31,41,55,.10),
+        inset 0 1px 0 rgba(255,255,255,.8) !important;
+
+    color:#1f2937 !important;
+    text-decoration:none !important;
+
+    font-family:'Vazirmatn',sans-serif !important;
+    font-size:14px !important;
+    font-weight:700 !important;
+
+    transition:.25s ease !important;
+    cursor:pointer;
+}
+
+.guest-login-fixed:hover{
+    background:rgba(37,99,235,.15) !important;
+    transform:translateY(-2px);
+}
+        .st-key-guest_login_button .guest-login-link{
+
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+
+    width:180px !important;
+    min-height:42px !important;
+    box-sizing:border-box !important;
+
+    background:rgba(255,255,255,0.35) !important;
+
+    backdrop-filter:blur(14px) !important;
+    -webkit-backdrop-filter:blur(14px) !important;
+
+    border:1px solid rgba(255,255,255,0.75) !important;
+    border-radius:16px !important;
+
+    box-shadow:
+    0 5px 18px rgba(31,41,55,.10),
+    inset 0 1px 0 rgba(255,255,255,.8) !important;
+
+    color:#1f2937 !important;
+    text-decoration:none !important;
+
+    font-family:'Vazirmatn',sans-serif !important;
+    font-size:14px !important;
+    font-weight:700 !important;
+
+    transition:.25s ease !important;
+    cursor:pointer;
+}
+
+.st-key-guest_login_button .guest-login-link:hover{
+    background:rgba(37,99,235,.15) !important;
+    transform:translateY(-2px);
+}
+
         </style>
         """,
         unsafe_allow_html=True
@@ -1063,23 +1147,35 @@ def inject_user_box_style() -> None:
     <style>
 
     /* جای خالی ته لیست گفتگوها تا زیر باکس کاربر قایم نشه */
-    [data-testid="stSidebarUserContent"]{
-        padding-bottom: 90px !important;
-    }
+/* جا برای باکس پایین سایدبار */
+[data-testid="stSidebarUserContent"]{
+    padding-bottom: 90px !important;
+}
 
-    .st-key-user_box_container{
-        position: fixed !important;
-        bottom: 18px !important;
-        left: 0 !important;
-        width: 21rem !important;   /* عرض پیش‌فرض سایدبار Streamlit */
-        padding: 10px 16px 16px 16px !important;
-        box-sizing: border-box !important;
-        background: rgba(255,255,255,.97) !important;
-        backdrop-filter: blur(16px);
-        z-index: 999998 !important;
-    }
+
+/* باکس کاربر همیشه پایین سایدبار */
+.st-key-user_box_container{
+    position: fixed !important;
+
+    bottom: 0 !important;
+    left: 0 !important;
+
+    width: 21rem !important;
+padding: 10px 16px 30px 16px !important;
+
+    box-sizing: border-box !important;
+
+    background: rgba(255,255,255,.97) !important;
+
+    backdrop-filter: blur(16px);
+
+    z-index: 999998 !important;
+}
 
     .user-details{
+        width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
         background:#ffffff;
         border:1px solid var(--soft-blue-border, #a9cdf0);
         border-radius:16px;
