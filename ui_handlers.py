@@ -17,6 +17,12 @@ WELCOME_MESSAGE = (
     "چطور می توانم در رزرو بلیط کمکتان کنم ؟ "
 )
 
+
+def current_user_id():
+    """آی‌دی کاربر لاگین‌شده، یا None اگر مهمان باشد."""
+    return st.session_state.get("user", {}).get("id")
+
+
 def scroll_to_bottom():
 
     components.html(
@@ -62,7 +68,8 @@ def select_cabin_class(cabin_value, cabin_label):
     save_message(
         st.session_state.session_id,
         "user",
-        user_message
+        user_message,
+        user_id=current_user_id()
     )
 
     # ذخیره پاسخ مرحله بعد گراف
@@ -78,7 +85,8 @@ def select_cabin_class(cabin_value, cabin_label):
     save_message(
         st.session_state.session_id,
         "assistant",
-        assistant_message
+        assistant_message,
+        user_id=current_user_id()
     )
 
 def select_passenger_option(option):
@@ -125,7 +133,8 @@ def select_passenger_option(option):
     save_message(
         st.session_state.session_id,
         "user",
-        user_message
+        user_message,
+        user_id=current_user_id()
     )
 
     # پاسخ گراف
@@ -143,7 +152,8 @@ def select_passenger_option(option):
     save_message(
         st.session_state.session_id,
         "assistant",
-        assistant_message
+        assistant_message,
+        user_id=current_user_id()
     )
 
     print(
@@ -188,7 +198,8 @@ def save_passenger_counts():
     save_message(
         st.session_state.session_id,
         "user",
-        user_message
+        user_message,
+        user_id=current_user_id()
     )
 
     # ذخیره پاسخ گراف
@@ -204,7 +215,8 @@ def save_passenger_counts():
     save_message(
         st.session_state.session_id,
         "assistant",
-        assistant_message
+        assistant_message,
+        user_id=current_user_id()
     )
 
     print(
@@ -233,7 +245,8 @@ def confirm_flight():
     save_message(
         st.session_state.session_id,
         "user",
-        user_message
+        user_message,
+        user_id=current_user_id()
     )
 
     assistant_message = graph_result["assistant_message"]
@@ -248,7 +261,8 @@ def confirm_flight():
     save_message(
         st.session_state.session_id,
         "assistant",
-        assistant_message
+        assistant_message,
+        user_id=current_user_id()
     )
 
 
@@ -274,7 +288,8 @@ def edit_flight():
     save_message(
         st.session_state.session_id,
         "user",
-        user_message
+        user_message,
+        user_id=current_user_id()
     )
 
     assistant_message = graph_result["assistant_message"]
@@ -289,7 +304,8 @@ def edit_flight():
     save_message(
         st.session_state.session_id,
         "assistant",
-        assistant_message
+        assistant_message,
+        user_id=current_user_id()
     )
 def toggle_sidebar():
     """باز یا بسته کردن نوار کناری کشویی با دکمه شناور بالای صفحه."""
@@ -317,7 +333,7 @@ def switch_session(session_id: str):
     """جابه‌جایی به یکی از گفتگوهای ذخیره‌شده و بارگذاری تاریخچه آن."""
     st.session_state.session_id = session_id
 
-    messages = load_messages(session_id)
+    messages = load_messages(session_id, user_id=current_user_id())
 
     if not messages:
         messages = [
@@ -333,7 +349,7 @@ def switch_session(session_id: str):
 
 def remove_session(session_id: str):
     """حذف یک گفتگوی ذخیره‌شده از پایگاه داده (به‌صورت تکی)."""
-    delete_session(session_id)
+    delete_session(session_id, user_id=current_user_id())
 
     # اگر گفتگوی فعلی حذف شد، یک گفتگوی جدید و خالی بساز
     if session_id == st.session_state.get("session_id"):
@@ -343,9 +359,13 @@ def remove_session(session_id: str):
 def logout_user():
     """خروج کاربر از حساب: پاک کردن session و کوکی."""
     st.session_state.pop("user", None)
+    st.session_state["just_logged_out"] = True
 
     try:
         del cookies["user_id"]
         cookies.save()
     except KeyError:
         pass
+
+    # بعد از خروج، یک گفتگوی تازه و خالی نشان داده شود
+    start_new_conversation()

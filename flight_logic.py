@@ -5,9 +5,9 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-import streamlit as st # type: ignore
-from langchain_mistralai import ChatMistralAI # type: ignore
-from langchain_core.prompts import ChatPromptTemplate # type: ignore
+import streamlit as st
+from langchain_mistralai import ChatMistralAI 
+from langchain_core.prompts import ChatPromptTemplate
 
 from models import FlightRequest
 

@@ -1,5 +1,5 @@
 import time
-import streamlit as st # type: ignore
+import streamlit as st
 from flight_graph import flight_graph
 from chat_database import save_message
 from flight_logic import extract_flight_request, merge_flight_state
@@ -81,9 +81,9 @@ def handle_user_prompt(prompt: str) -> None:
         }
     )
     save_message(
-        session_id=st.session_state.session_id,
-        role="assistant",
-        content=answer
-        )
-
+    session_id=st.session_state.session_id,
+    role="assistant",
+    content=answer,
+    user_id=st.session_state.get("user", {}).get("id")
+    )
     st.rerun()

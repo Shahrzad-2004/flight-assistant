@@ -16,6 +16,7 @@ def create_tables():
             CREATE TABLE IF NOT EXISTS conversations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id TEXT NOT NULL,
+                user_id INTEGER,
                 role TEXT NOT NULL
                     CHECK(role IN ('user', 'assistant')),
                 content TEXT NOT NULL,
@@ -23,23 +24,38 @@ def create_tables():
             )
         """)
 
+        # مهاجرت برای دیتابیس‌های قدیمی‌تری که ستون user_id را ندارند
+        existing_columns = [
+            row[1]
+            for row in connection.execute(
+                "PRAGMA table_info(conversations)"
+            ).fetchall()
+        ]
+
+        if "user_id" not in existing_columns:
+            connection.execute(
+                "ALTER TABLE conversations ADD COLUMN user_id INTEGER"
+            )
+
         connection.commit()
 
 
-def save_message(session_id: str, role: str, content: str):
+def save_message(session_id: str, role: str, content: str, user_id: int | None = None):
     with get_connection() as connection:
         connection.execute(
             """
             INSERT INTO conversations (
                 session_id,
+                user_id,
                 role,
                 content,
                 created_at
             )
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
                 session_id,
+                user_id,
                 role,
                 content,
                 datetime.now().isoformat()
@@ -49,17 +65,29 @@ def save_message(session_id: str, role: str, content: str):
         connection.commit()
 
 
-def load_messages(session_id: str):
+def load_messages(session_id: str, user_id: int | None = None):
     with get_connection() as connection:
-        rows = connection.execute(
-            """
-            SELECT role, content
-            FROM conversations
-            WHERE session_id = ?
-            ORDER BY id ASC
-            """,
-            (session_id,)
-        ).fetchall()
+
+        if user_id is None:
+            rows = connection.execute(
+                """
+                SELECT role, content
+                FROM conversations
+                WHERE session_id = ? AND user_id IS NULL
+                ORDER BY id ASC
+                """,
+                (session_id,)
+            ).fetchall()
+        else:
+            rows = connection.execute(
+                """
+                SELECT role, content
+                FROM conversations
+                WHERE session_id = ? AND user_id = ?
+                ORDER BY id ASC
+                """,
+                (session_id, user_id)
+            ).fetchall()
 
     return [
         {
@@ -68,12 +96,22 @@ def load_messages(session_id: str):
         }
         for role, content in rows
     ]
-#   فهرست گفتگوهای ذخیره‌ شده در پایگاه داده و خروجی به ترتیب جدیدترین به قدیمی‌ ترین است
-def list_sessions():
-    
+
+
+#   فهرست گفتگوهای ذخیره‌ شده‌ی همین کاربر (یا مهمان)، از جدیدترین به قدیمی‌ترین
+def list_sessions(user_id: int | None = None):
+
     with get_connection() as connection:
+
+        if user_id is None:
+            owner_filter = "WHERE user_id IS NULL"
+            params = ()
+        else:
+            owner_filter = "WHERE user_id = ?"
+            params = (user_id,)
+
         rows = connection.execute(
-            """
+            f"""
             SELECT
                 session_id,
                 MAX(created_at) AS last_activity,
@@ -86,9 +124,11 @@ def list_sessions():
                     LIMIT 1
                 ) AS title
             FROM conversations
+            {owner_filter}
             GROUP BY session_id
             ORDER BY last_activity DESC
-            """
+            """,
+            params
         ).fetchall()
 
     sessions = []
@@ -109,13 +149,21 @@ def list_sessions():
 
     return sessions
 
-# حذف کامل یک گفتگو از پایگاه داده
-def delete_session(session_id: str):
+
+# حذف کامل یک گفتگو از پایگاه داده (فقط اگر متعلق به همین کاربر/مهمان باشد)
+def delete_session(session_id: str, user_id: int | None = None):
 
     with get_connection() as connection:
-        connection.execute(
-            "DELETE FROM conversations WHERE session_id = ?",
-            (session_id,)
-        )
+
+        if user_id is None:
+            connection.execute(
+                "DELETE FROM conversations WHERE session_id = ? AND user_id IS NULL",
+                (session_id,)
+            )
+        else:
+            connection.execute(
+                "DELETE FROM conversations WHERE session_id = ? AND user_id = ?",
+                (session_id, user_id)
+            )
 
         connection.commit()
