@@ -1,5 +1,6 @@
 from typing import TypedDict, Optional, Literal
 from langgraph.graph import StateGraph, START, END
+from flight_scraper.scraper_manager import search_all_flights
 
 
 class FlightState(TypedDict, total=False):
@@ -42,6 +43,7 @@ class FlightState(TypedDict, total=False):
     # اطلاعات مربوط به رابط کاربری
     current_step: str
     assistant_message: str
+    flights: list
 
     ui_type: Literal[
         "chat_input",
@@ -199,10 +201,29 @@ def edit_request(state: FlightState) -> FlightState:
 
 
 def search_flights(state: FlightState) -> FlightState:
+
+    flights = search_all_flights(
+        origin=state["origin"],
+        destination=state["destination"],
+        departure_date=state["departure_date"],
+        adults=state.get("adults", 1),
+        children=state.get("children", 0),
+        infants=state.get("infants", 0)
+    )
+
+
     return {
+
+        **state,
+
         "current_step": "search",
-        "assistant_message": "اطلاعات تأیید شد. در حال جستجوی پروازها...",
-        "ui_type": "search"
+
+        "assistant_message":
+            f"{len(flights)} پرواز پیدا شد.",
+
+        "ui_type": "search",
+
+        "flights": flights
     }
 
 

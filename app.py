@@ -22,6 +22,7 @@ from styles import (
     inject_login_style,
     inject_auth_style,
     inject_user_box_style,
+    inject_flight_ticket
   
 
 
@@ -70,6 +71,15 @@ def get_base64(file_name):
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
 
+def get_plane_image():
+
+    path = Path("plane.jpg")
+
+    with open(path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode()
+
+    return f"data:image/jpeg;base64,{encoded}"
+
 def to_jalali(date_str):
 
     if not date_str:
@@ -112,6 +122,7 @@ inject_sidebar_style(st.session_state.sidebar_open)
 inject_login_style()
 inject_auth_style()
 inject_user_box_style()
+inject_flight_ticket()
 
 
 
@@ -295,6 +306,117 @@ for message in st.session_state.messages:
 current_ui = st.session_state.get(
     "flight_state",{}).get("ui_type")
 print("current_ui",current_ui)
+
+
+def render_flight_ticket(flight):
+    plane_img = get_plane_image()
+
+    st.markdown(
+f"""
+<div class="ticket-card">
+
+<div class="ticket-content">
+
+
+<div class="flight-section">
+
+
+<div class="ticket-header">
+
+<div class="airline-name">
+✈️ {flight["airline"]}
+</div>
+
+
+<div class="flight-tags">
+
+<span>{flight["flight_type"]}</span>
+<span>{flight["cabin_class"]}</span>
+<span>{flight["aircraft"]}</span>
+
+</div>
+
+</div>
+
+
+
+<div class="route-section">
+
+
+<div class="airport">
+
+<div class="city">
+{flight["origin"]}
+</div>
+
+<div class="time">
+{flight["departure_time"]}
+</div>
+
+</div>
+
+
+
+<div class="flight-line">
+
+<div class="line"></div>
+
+<img class="plane-icon" src="{plane_img}">
+
+<div class="line"></div>
+
+</div>
+
+
+
+<div class="airport">
+
+<div class="city">
+{flight["destination"]}
+</div>
+
+<div class="time">
+{flight["arrival_time"]}
+</div>
+
+</div>
+
+
+</div>
+
+</div>
+
+
+
+
+<div class="price-section">
+
+
+
+<div class="ticket-price">
+{flight["price"]}
+</div>
+
+
+<div class="seat-info">
+ظرفیت: {flight["remaining_seats"]}
+</div>
+
+<button class="select-flight">
+انتخاب پرواز
+</button>
+
+
+</div>
+
+
+
+</div>
+
+</div>
+""",
+unsafe_allow_html=True
+)
 
 if current_ui == "passenger_choice":
 
@@ -497,6 +619,34 @@ elif current_ui == "confirmation":
         use_container_width=True,
         on_click=edit_flight
     )
+
+    scroll_to_bottom()
+
+    prompt = None
+
+elif current_ui == "search":
+
+    flight_state = st.session_state["flight_state"]
+
+    flights = flight_state.get(
+        "flights",
+        []
+    )
+
+
+    st.markdown(
+        """
+        <div class="cabin-title">
+            پروازهای موجود:
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    for flight in flights:
+        render_flight_ticket(flight)
+
 
     scroll_to_bottom()
 

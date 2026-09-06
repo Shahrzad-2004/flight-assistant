@@ -9,12 +9,12 @@ class FlightRequest(BaseModel):
 
     origin: Optional[str] = Field(
         default=None,
-        description="شهر یا فرودگاه مبدأ"
+        description="شهر مبدأ"
     )
 
     destination: Optional[str] = Field(
         default=None,
-        description="شهر یا فرودگاه مقصد"
+        description="شهر مقصد"
     )
 
     departure_date_raw: Optional[str] = Field(
