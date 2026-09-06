@@ -1284,3 +1284,282 @@ padding: 10px 16px 30px 16px !important;
     """,
         unsafe_allow_html=True,
     )
+
+
+
+def inject_flight_ticket():
+
+    st.markdown(
+"""
+<style>
+
+
+.ticket-card{
+
+    background: rgba(255,255,255,0.92);
+
+    border-radius:28px;
+
+    padding:20px;
+
+    margin-bottom:25px;
+
+    box-shadow:
+    0 10px 35px rgba(0,0,0,0.10);
+
+    backdrop-filter:blur(12px);
+
+    direction:rtl;
+
+
+}
+
+.seat-info{
+
+margin:20px 0;
+
+font-size:16px;
+
+color:#444;
+
+}
+
+.plane-icon{
+
+width:35px;
+
+height:35px;
+
+object-fit:contain;
+
+opacity:0.55;
+
+}
+
+.ticket-content{
+
+display:flex;
+
+flex-direction:row;
+
+gap:20px;
+
+}
+
+
+
+.flight-section{
+
+flex:1;
+
+}
+
+
+
+.ticket-header{
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+}
+
+
+
+.airline-name{
+
+    font-size:22px;
+
+    font-weight:700;
+
+    color:#1d3c9b;
+
+}
+
+
+
+.flight-tags span{
+
+    background:#e8f0ff;
+
+    color:#3158db;
+
+    padding:7px 18px;
+
+    border-radius:20px;
+
+    font-size:14px;
+
+    margin-left:8px;
+
+    font-weight:600;
+
+}
+
+
+
+.route-section{
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+gap:30px;
+
+margin:20px 0;
+
+}
+
+
+
+.airport{
+
+text-align:center;
+
+}
+
+
+
+.airline-name{
+
+    font-size:22px;
+
+    font-weight:700;
+
+    color:#1d3c9b;
+
+}
+
+.city{
+
+    font-size:18px;
+
+    color:#333;
+
+}
+
+
+.time{
+
+    font-size:32px;
+
+    font-weight:700;
+
+    color:#3158db;
+
+}
+
+
+
+.flight-line{
+
+display:flex;
+
+align-items:center;
+
+gap:10px;
+
+color:#888;
+
+}
+
+
+
+.line{
+
+width:70px;
+
+border-top:2px dashed #ccc;
+
+}
+
+
+
+.flight-details{
+
+    display:flex;
+
+    justify-content:space-around;
+
+    background:#f3f6ff;
+
+    color:#444;
+
+    border-radius:18px;
+
+    padding:15px;
+
+    text-align:center;
+
+}
+
+
+
+.price-section{
+
+width:230px;
+
+border-right:1px solid #ddd;
+
+display:flex;
+
+flex-direction:column;
+
+justify-content:center;
+
+align-items:center;
+
+}
+
+
+
+.price-title{
+
+font-size:14px;
+
+color:#777;
+
+}
+
+
+
+.ticket-price{
+
+font-size:27px;
+
+font-weight:bold;
+
+color:#2455d6;
+
+margin:15px 0;
+
+}
+
+
+
+.select-flight{
+
+background:#3158db;
+
+color:white;
+
+border:none;
+
+padding:13px 35px;
+
+border-radius:14px;
+
+font-size:16px;
+
+}
+
+
+
+</style>
+""",
+unsafe_allow_html=True
+)

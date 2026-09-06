@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 import streamlit as st
 from langchain_mistralai import ChatMistralAI 
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
 from models import FlightRequest
@@ -16,24 +17,23 @@ from models import FlightRequest
 @st.cache_resource
 def create_flight_extractor():
 
-    api_key = st.secrets.get("MISTRAL_API_KEY")
+    api_key = st.secrets.get("QWEN_API_KEY")
 
     if not api_key:
         raise RuntimeError(
-            "کلید MISTRAL_API_KEY در فایل secrets.toml پیدا نشد."
+            "کلید QWEN_API_KEY در فایل secrets.toml پیدا نشد."
         )
 
-    llm = ChatMistralAI(
-        model="mistral-small-latest",
-        temperature=0,
-        api_key=api_key,
-        max_retries=4
-    )
+    llm = ChatOpenAI(
+    model="qwen-plus",
+    api_key=api_key,
+    base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    temperature=0
+)
     #ساختار پاسخ ال ال ام
     structured_llm = llm.with_structured_output(
-        schema=FlightRequest.model_json_schema(),
-        method="json_schema"
-    )
+    FlightRequest
+)
 
     extraction_prompt = ChatPromptTemplate.from_messages([
         (
@@ -277,6 +277,8 @@ def extract_flight_request(user_text: str,current_state: dict | None = None) -> 
     today = datetime.now(ZoneInfo("Asia/Tehran")).date().isoformat()
 
     extractor = create_flight_extractor()
+    print("===== QWEN CALL =====")
+    print("USER:", user_text)
     if current_state is None:
         current_state = {}
     result = extractor.invoke({
@@ -284,16 +286,16 @@ def extract_flight_request(user_text: str,current_state: dict | None = None) -> 
         "today": today,
         "current_state": current_state
     })
-    raw_date = result.get("departure_date_raw")
+    raw_date = result.departure_date_raw
 
     resolved_date = resolve_departure_date(
         raw_date
     )
 
     if resolved_date is not None:
-        result["departure_date"] = resolved_date
+        result.departure_date = resolved_date
 
-    return FlightRequest.model_validate(result)
+    return result
 
 def merge_flight_state(new_request: FlightRequest):
 

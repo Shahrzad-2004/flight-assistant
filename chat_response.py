@@ -56,12 +56,11 @@ def handle_user_prompt(prompt: str) -> None:
                     )
 
                 except Exception as error:
-
                     error_type = type(error).__name__
                     error_text = str(error)
 
                     answer = f"""
-                در اتصال به Mistral خطایی رخ داد ❌
+                در اتصال به QWEN خطایی رخ داد ❌
 
                 نوع خطا: `{error_type}`
 
