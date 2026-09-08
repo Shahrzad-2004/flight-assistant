@@ -3,6 +3,65 @@ import re
 from datetime import datetime
 import jdatetime
 
+# نگاشت نام فارسی شهرها به کد فرودگاه (IATA) برای ساخت لینک علی‌بابا
+IATA_CODES = {
+    "تهران": "THR",
+    "مشهد": "MHD",
+    "شیراز": "SYZ",
+    "اصفهان": "IFN",
+    "تبریز": "TBZ",
+    "اهواز": "AWZ",
+    "کیش": "KIH",
+    "کرمان": "KER",
+    "اردبیل": "ADU",
+    "یزد": "AZD",
+    "بندرعباس": "BND",
+    "رشت": "RAS",
+    "ساری": "SRY",
+    "زاهدان": "ZAH",
+    "بوشهر": "BUZ",
+    "همدان": "HDM",
+    "کرمانشاه": "KSH",
+    "ارومیه": "OMH",
+    "گرگان": "GBT",
+    "آبادان": "ABD",
+    "خرم‌آباد": "KHD",
+    "زنجان": "JWN",
+    "قشم": "GSM",
+    "چابهار": "ZBR",
+}
+
+
+def build_alibaba_url(
+    origin: str,
+    destination: str,
+    departure_date: str,
+    adults: int,
+    children: int,
+    infants: int
+) -> str:
+    """آدرس صفحه‌ی جستجوی علی‌بابا (با تاریخ و تعداد مسافر پرشده) را می‌سازد."""
+ 
+    origin_code = IATA_CODES.get(origin)
+    destination_code = IATA_CODES.get(destination)
+ 
+    # اگر کد فرودگاه شهر پیدا نشد، به صفحه‌ی اصلی جستجو برمی‌گردیم
+    if not origin_code or not destination_code:
+        return "https://www.alibaba.ir/"
+ 
+    jalali_date = convert_to_jalali(departure_date)
+    departing = (
+        f"{jalali_date.year}-"
+        f"{jalali_date.month:02d}-"
+        f"{jalali_date.day:02d}"
+    )
+ 
+    return (
+        f"https://www.alibaba.ir/flights/{origin_code}-{destination_code}"
+        f"?adult={adults}&child={children}&infant={infants}"
+        f"&departing={departing}"
+    )
+
 def convert_to_jalali(date_str):
 
     gregorian_date = datetime.strptime(
@@ -153,7 +212,8 @@ def search_alibaba(
         origin_option.click()
 
 
-        destination_input = page.get_by_role("textbox", name="مقصد (شهر)")
+        destination_input = page.get_by_role(
+            "textbox", name="مقصد (شهر)")
         
         destination_input.fill(destination)
         destination_option = page.locator("a").filter(has_text=re.compile(rf"^{re.escape(destination)}$"))
@@ -188,39 +248,94 @@ def search_alibaba(
 
         for i in range(price_boxes.count()):
 
-            price = price_boxes.nth(i)
+            try:
+                price = price_boxes.nth(i)
 
-            card = price.locator(
-                "xpath=ancestor::div[contains(@class,'a-card')][1]"
-            )
+                card = price.locator(
+                    "xpath=ancestor::div[contains(@class,'a-card')][1]"
+                )
 
-            lines = [
-                line.strip()
-                for line in card.inner_text().splitlines()
-                if line.strip()
-            ]
+                lines = [
+                    line.strip()
+                    for line in card.inner_text().splitlines()
+                    if line.strip()
+                ]
 
-            remaining_seats = None
+                if not lines:
+                    continue
 
-            for line in lines:
-                if "صندلی باقی مانده" in line:
-                    remaining_seats = line
-                    break
+                airline = lines[0]
 
-            flight = {
-                "airline": lines[0],
-                "flight_type": lines[1],
-                "cabin_class": lines[2],
-                "aircraft": lines[3],
-                "origin": lines[4],
-                "departure_time": lines[5],
-                "destination": lines[6],
-                "arrival_time": lines[7],
-                "price": price.inner_text().strip(),
-                "remaining_seats": remaining_seats
-            }
+                time_pattern = re.compile(r"^\d{1,2}:\d{2}$")
+                times = [line for line in lines if time_pattern.match(line)]
 
-            flights.append(flight)
+                departure_time = times[0] if len(times) > 0 else None
+                arrival_time = times[1] if len(times) > 1 else None
+
+                if departure_time is None or arrival_time is None:
+                    continue
+
+                remaining_seats = None
+                for line in lines:
+                    if "صندلی باقی مانده" in line:
+                        remaining_seats = line
+                        break
+
+                wheelchair_note = None
+                for line in lines:
+                    if "ویلچر" in line:
+                        wheelchair_note = line
+                        break
+
+                aircraft = None
+                for line in lines:
+                    if re.search(r"boeing|airbus|فوکر|ATR|CRJ", line, re.IGNORECASE):
+                        aircraft = line
+                        break
+
+                cabin_class = None
+                for line in lines:
+                    if any(
+                        keyword in line
+                        for keyword in ["اکونومی", "بیزینس", "فرست"]
+                    ):
+                        cabin_class = line
+                        break
+
+                flight_type = None
+                for line in lines:
+                    if line in ("چارتری", "سیستمی"):
+                        flight_type = line
+                        break
+
+                flight = {
+                    "airline": airline,
+                    "flight_type": flight_type,
+                    "cabin_class": cabin_class,
+                    "aircraft": aircraft,
+                    "origin": origin,
+                    "departure_time": departure_time,
+                    "destination": destination,
+                    "arrival_time": arrival_time,
+                    "price": price.inner_text().strip(),
+                    "remaining_seats": remaining_seats,
+                    "wheelchair_note": wheelchair_note,
+                    "source": "علی‌بابا",
+                    "source_url": build_alibaba_url(
+                        origin,
+                        destination,
+                        departure_date,
+                        adults,
+                        children,
+                        infants
+                    )
+                }
+
+                flights.append(flight)
+
+            except Exception as e:
+                print("خطا در پردازش یک کارت پرواز، رد شد:", e)
+                continue
         
         browser.close()
         return flights

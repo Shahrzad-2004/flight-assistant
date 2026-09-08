@@ -1543,9 +1543,9 @@ margin:15px 0;
 
 .select-flight{
 
-background:#3158db;
+background:#3158db !important;
 
-color:white;
+color:white !important;
 
 border:none;
 
@@ -1553,7 +1553,9 @@ padding:13px 35px;
 
 border-radius:14px;
 
-font-size:16px;
+display:inline-block;
+
+text-decoration:none !important;
 
 }
 

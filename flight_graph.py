@@ -200,6 +200,13 @@ def edit_request(state: FlightState) -> FlightState:
     }
 
 
+CABIN_CLASS_KEYWORDS = {
+    "economy": "اکونومی",
+    "business": "بیزینس",
+    "first": "فرست",
+}
+
+
 def search_flights(state: FlightState) -> FlightState:
 
     flights = search_all_flights(
@@ -211,6 +218,32 @@ def search_flights(state: FlightState) -> FlightState:
         infants=state.get("infants", 0)
     )
 
+    preferred_cabin = state.get("cabin_class")
+    keyword = CABIN_CLASS_KEYWORDS.get(preferred_cabin)
+
+    if keyword:
+        flights = [
+            flight
+            for flight in flights
+            if keyword in (flight.get("cabin_class") or "")
+        ]
+
+    if not flights:
+        return {
+
+            **state,
+
+            "current_step": "search",
+
+            "assistant_message":
+                "متاسفانه برای مسیر مورد نظر شما در این تاریخ پروازی "
+                "وجود ندارد یا ظرفیت پروازهای موجود تکمیل شده است. "
+                "لطفا تاریخ دیگری را جستجو کنید.",
+
+            "ui_type": "search",
+
+            "flights": []
+        }
 
     return {
 
@@ -225,7 +258,6 @@ def search_flights(state: FlightState) -> FlightState:
 
         "flights": flights
     }
-
 
 
 # ساخت گراف

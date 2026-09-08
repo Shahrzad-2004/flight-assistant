@@ -311,6 +311,10 @@ print("current_ui",current_ui)
 def render_flight_ticket(flight):
     plane_img = get_plane_image()
 
+    wheelchair_badge = ""
+    if flight.get("wheelchair_note"):
+        wheelchair_badge = f'<span>{flight["wheelchair_note"]}</span>'
+
     st.markdown(
 f"""
 <div class="ticket-card">
@@ -333,6 +337,7 @@ f"""
 <span>{flight["flight_type"]}</span>
 <span>{flight["cabin_class"]}</span>
 <span>{flight["aircraft"]}</span>
+{wheelchair_badge}
 
 </div>
 
@@ -402,9 +407,9 @@ f"""
 ظرفیت: {flight["remaining_seats"]}
 </div>
 
-<button class="select-flight">
+<a href="{flight.get("source_url", "#")}" target="_blank" class="select-flight">
 انتخاب پرواز
-</button>
+</a>
 
 
 </div>
@@ -634,14 +639,30 @@ elif current_ui == "search":
     )
 
 
-    st.markdown(
-        """
-        <div class="cabin-title">
-            پروازهای موجود:
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    if flights:
+        departure_date = flight_state.get("departure_date")
+        date_label = ""
+
+        if departure_date:
+            gregorian_date = datetime.strptime(
+                departure_date,
+                "%Y-%m-%d"
+            ).date()
+
+            jalali_date = jdatetime.date.fromgregorian(
+                date=gregorian_date
+            )
+
+            date_label = jalali_date.strftime("%Y/%m/%d")
+
+        st.markdown(
+            f"""
+            <div class="cabin-title">
+                پروازهای موجود{f" ({date_label})" if date_label else ""}:
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
     for flight in flights:
