@@ -26,6 +26,14 @@ class FlightState(TypedDict, total=False):
             "unspecified"
         ]
     ]
+    sort_by: Optional[
+        Literal[
+            "cheapest",
+            "earliest",
+            "latest",
+            "priciest"
+        ]
+    ]
 
     # تعداد مسافران
     adults: Optional[int]
@@ -48,6 +56,7 @@ class FlightState(TypedDict, total=False):
     ui_type: Literal[
         "chat_input",
         "cabin_buttons",
+        "sort_buttons",
         "passenger_choice",
         "passenger_counter",
         "confirmation",
@@ -162,7 +171,24 @@ def ask_cabin_class(state: FlightState) -> FlightState:
         "assistant_message": "کدام کلاس پروازی را ترجیح می‌دهید؟",
         "ui_type": "cabin_buttons"
     }
+def check_sort_by(state: FlightState) -> dict:
+    """بررسی می‌کند معیار مرتب‌سازی پروازها مشخص شده یا نه."""
+    return {}
 
+
+def route_sort_by(state: FlightState) -> str:
+    if state.get("sort_by") is None:
+        return "missing"
+
+    return "complete"
+
+
+def ask_sort_by(state: FlightState) -> FlightState:
+    return {
+        "current_step": "ask_sort_by",
+        "assistant_message": "پروازها بر چه اساسی مرتب شوند؟",
+        "ui_type": "sort_buttons"
+    }
 
 # =========================================================
 # 4) بررسی تأیید نهایی
@@ -206,6 +232,13 @@ CABIN_CLASS_KEYWORDS = {
     "first": "فرست",
 }
 
+ALIBABA_SORT_TABS = {
+    "cheapest": "ارزان‌ترین",
+    "earliest": "زودترین",
+    "latest": "دیرترین",
+    "priciest": "گران‌ترین",
+}
+
 
 def search_flights(state: FlightState) -> FlightState:
 
@@ -215,7 +248,8 @@ def search_flights(state: FlightState) -> FlightState:
         departure_date=state["departure_date"],
         adults=state.get("adults", 1),
         children=state.get("children", 0),
-        infants=state.get("infants", 0)
+        infants=state.get("infants", 0),
+        sort_by=state.get("sort_by")
     )
 
     preferred_cabin = state.get("cabin_class")
@@ -227,7 +261,6 @@ def search_flights(state: FlightState) -> FlightState:
             for flight in flights
             if keyword in (flight.get("cabin_class") or "")
         ]
-
     if not flights:
         return {
 
@@ -274,6 +307,8 @@ graph_builder.add_node("ask_required_fields", ask_required_fields)
 graph_builder.add_node("ask_passenger_choice", ask_passenger_choice)
 graph_builder.add_node("enter_passengers", enter_passengers)
 graph_builder.add_node("ask_cabin_class", ask_cabin_class)
+graph_builder.add_node("check_sort_by", check_sort_by)
+graph_builder.add_node("ask_sort_by", ask_sort_by)
 graph_builder.add_node("show_confirmation", show_confirmation)
 graph_builder.add_node("edit_request", edit_request)
 graph_builder.add_node("search_flights", search_flights)
@@ -308,11 +343,23 @@ graph_builder.add_conditional_edges(
 
 
 # کلاس پرواز
+# کلاس پرواز
 graph_builder.add_conditional_edges(
     "check_cabin_class",
     route_cabin_class,
     {
         "missing": "ask_cabin_class",
+        "complete": "check_sort_by"
+    }
+)
+
+
+# معیار مرتب‌سازی
+graph_builder.add_conditional_edges(
+    "check_sort_by",
+    route_sort_by,
+    {
+        "missing": "ask_sort_by",
         "complete": "check_confirmation_status"
     }
 )
@@ -335,6 +382,7 @@ graph_builder.add_edge("ask_required_fields", END)
 graph_builder.add_edge("ask_passenger_choice", END)
 graph_builder.add_edge("enter_passengers", END)
 graph_builder.add_edge("ask_cabin_class", END)
+graph_builder.add_edge("ask_sort_by", END)
 graph_builder.add_edge("show_confirmation", END)
 graph_builder.add_edge("edit_request", END)
 graph_builder.add_edge("search_flights", END)

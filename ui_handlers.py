@@ -88,7 +88,50 @@ def select_cabin_class(cabin_value, cabin_label):
         assistant_message,
         user_id=current_user_id()
     )
+def select_sort_by(sort_value, sort_label):
 
+    current_state = st.session_state["flight_state"].copy()
+
+    # قرار دادن انتخاب کاربر در State
+    current_state["sort_by"] = sort_value
+
+    # اجرای دوباره گراف برای تعیین مرحله بعد
+    graph_result = flight_graph.invoke(current_state)
+    st.session_state["flight_state"] = graph_result
+
+    user_message = f"مرتب‌سازی بر اساس: {sort_label}"
+
+    # ذخیره پیام انتخاب کاربر در حافظه
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_message
+        }
+    )
+
+    save_message(
+        st.session_state.session_id,
+        "user",
+        user_message,
+        user_id=current_user_id()
+    )
+
+    # ذخیره پاسخ مرحله بعد گراف
+    assistant_message = graph_result["assistant_message"]
+
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": assistant_message
+        }
+    )
+
+    save_message(
+        st.session_state.session_id,
+        "assistant",
+        assistant_message,
+        user_id=current_user_id()
+    )
 def select_passenger_option(option):
 
     current_state = st.session_state["flight_state"].copy()
