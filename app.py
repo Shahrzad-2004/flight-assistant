@@ -80,6 +80,17 @@ def get_plane_image():
 
     return f"data:image/jpeg;base64,{encoded}"
 
+def get_airline_logo_base64(logo_path):
+    if not logo_path:
+        return ""
+    path = BASE_DIR / logo_path
+    if not path.exists():
+        return ""
+    mime = "image/svg+xml" if path.suffix.lower() == ".svg" else "image/png"
+    with open(path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode()
+    return f"data:{mime};base64,{encoded}"
+
 def to_jalali(date_str):
 
     if not date_str:
@@ -324,7 +335,7 @@ print("current_ui",current_ui)
 
 def render_flight_ticket(flight):
     plane_img = get_plane_image()
-
+    airline_logo_data = get_airline_logo_base64(flight.get("airline_logo"))
     wheelchair_badge = ""
     if flight.get("wheelchair_note"):
         wheelchair_badge = f'<span>{flight["wheelchair_note"]}</span>'
@@ -345,7 +356,7 @@ f"""
 
 
 <img class="airline-logo"
-src="{ flight["airline_logo"] }" >
+src="{ airline_logo_data }" >
 
 <span>{ flight["airline"] }</span>
 

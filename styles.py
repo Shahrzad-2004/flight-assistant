@@ -1369,13 +1369,12 @@ align-items:center;
 
 
 .airline-name{
-
+    display:flex;
+    align-items:center;
+    gap:12px;
     font-size:22px;
-
     font-weight:700;
-
     color:#1d3c9b;
-
 }
 
 .airline-logo {
