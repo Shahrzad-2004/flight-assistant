@@ -1378,7 +1378,14 @@ align-items:center;
 
 }
 
+.airline-logo {
+    width: 48px;
+    height: 48px;
 
+    object-fit: contain;
+
+    border-radius: 8px;
+}
 
 .flight-tags span{
 

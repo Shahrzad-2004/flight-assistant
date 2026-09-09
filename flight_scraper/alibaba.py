@@ -88,6 +88,17 @@ JALALI_MONTHS = {
     11: "بهمن",
     12: "اسفند"
 }
+AIRLINE_LOGOS = {
+    "زاگرس": {
+        "logo":"airlines/ZG.svg"
+    },
+    "ایران ایرتور": {
+        "logo":"airlines/IT.svg"
+    },
+    "آتا": {
+            "logo":"airlines/AT.svg"
+        },
+}
 def select_departure_date(page, date_str):
 
     jalali_date = convert_to_jalali(date_str)
@@ -244,6 +255,7 @@ def search_alibaba(
                 r"^\s*\d{1,3}(?:,\d{3})+\s*تومان\s*$"
             )
         )
+
         flights = []
 
         for i in range(price_boxes.count()):
@@ -263,8 +275,11 @@ def search_alibaba(
 
                 if not lines:
                     continue
+                
 
                 airline = lines[0]
+                airline_info = AIRLINE_LOGOS.get(airline)
+                airline_logo = airline_info["logo"] if airline_info else None
 
                 time_pattern = re.compile(r"^\d{1,2}:\d{2}$")
                 times = [line for line in lines if time_pattern.match(line)]
@@ -310,6 +325,7 @@ def search_alibaba(
 
                 flight = {
                     "airline": airline,
+                    "airline_logo":airline_logo,
                     "flight_type": flight_type,
                     "cabin_class": cabin_class,
                     "aircraft": aircraft,

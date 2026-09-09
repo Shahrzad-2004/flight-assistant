@@ -99,7 +99,7 @@ class FlightRequest(BaseModel):
     )
 
     sort_by: Optional[
-        Literal["cheapest", "earliest", "shortest", "best"]
+        Literal["cheapest", "earliest", "latest", "priciest"]
     ] = Field(
         default=None,
         description="معیار اصلی انتخاب پرواز"

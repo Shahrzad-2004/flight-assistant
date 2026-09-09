@@ -5,9 +5,8 @@ from pathlib import Path
 import streamlit as st
 from datetime import datetime
 import jdatetime
-from chat_database import create_tables, save_message, load_messages,list_sessions,delete_session
-from flight_graph import flight_graph
-from authentication import render_auth_buttons,handle_google_callback, get_google_auth_url
+from chat_database import create_tables, save_message,list_sessions
+from authentication import handle_google_callback, get_google_auth_url
 from user_database import create_users_table,get_user_by_id
 from cookie_manager import cookies
 
@@ -30,6 +29,7 @@ from styles import (
 from ui_handlers import (
     scroll_to_bottom,
     select_cabin_class,
+    select_sort_by,
     select_passenger_option,
     save_passenger_counts,
     confirm_flight,
@@ -109,6 +109,20 @@ def get_cabin_label(cabin_class):
 
     return cabin_labels.get(
         cabin_class,
+        "-"
+    )
+
+def get_sort_label(sort_by):
+
+    sort_labels = {
+        "cheapest": "ارزان‌ترین",
+        "earliest": "زودترین",
+        "latest": "دیرترین",
+        "priciest": "گران‌ترین"
+    }
+
+    return sort_labels.get(
+        sort_by,
         "-"
     )
 background = get_base64("ee.jpg")
@@ -328,7 +342,13 @@ f"""
 <div class="ticket-header">
 
 <div class="airline-name">
-✈️ {flight["airline"]}
+
+
+<img class="airline-logo"
+src="{ flight["airline_logo"] }" >
+
+<span>{ flight["airline"] }</span>
+
 </div>
 
 
@@ -552,6 +572,53 @@ elif current_ui == "cabin_buttons":
         use_container_width=True,
         on_click=select_cabin_class,
         args=("unspecified", "اهمیت ندارد")
+    )
+    scroll_to_bottom()
+    prompt = None
+
+elif current_ui == "sort_buttons":
+
+    st.markdown(
+    """
+    <div class="cabin-title">
+        پروازها بر چه اساسی مرتب شوند؟
+    </div>
+    """,
+    unsafe_allow_html=True
+    )
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.button(
+        "ارزان‌ترین",
+        key="cheapest_button",
+        use_container_width=True,
+        on_click=select_sort_by,
+        args=("cheapest", "ارزان‌ترین")
+    )
+
+    col2.button(
+        "زودترین",
+        key="earliest_button",
+        use_container_width=True,
+        on_click=select_sort_by,
+        args=("earliest", "زودترین")
+    )
+
+    col3.button(
+        "دیرترین",
+        key="latest_button",
+        use_container_width=True,
+        on_click=select_sort_by,
+        args=("latest", "دیرترین")
+    )
+
+    col4.button(
+        "گران‌ترین",
+        key="priciest_button",
+        use_container_width=True,
+        on_click=select_sort_by,
+        args=("priciest", "گران‌ترین")
     )
     scroll_to_bottom()
     prompt = None

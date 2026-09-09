@@ -7,7 +7,8 @@ def search_all_flights(
     departure_date,
     adults,
     children,
-    infants
+    infants,
+    sort_by=None
 ):
 
     results = []
