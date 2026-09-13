@@ -272,17 +272,25 @@ def inject_cabin_and_passenger_style() -> None:
         flex-direction: row-reverse !important;
         gap: 10px !important;
     }
-    
+    [data-testid="stHorizontalBlock"]:has(.st-key-cheapest_button) {
+        direction: rtl !important;
+        flex-direction: row-reverse !important;
+        gap: 10px !important;
+    }
+
     
     /* استایل شیشه‌ای مخصوص چهار دکمه کلاس پرواز */
-    
     .st-key-economy_button button,
     .st-key-business_button button,
     .st-key-first_button button,
     .st-key-unspecified_button button,
     .st-key-passenger_enter_button button,
     .st-key-passenger_default_button button,
-    .st-key-save_passenger_counts_button button {
+    .st-key-save_passenger_counts_button button,
+    .st-key-cheapest_button button,
+    .st-key-earliest_button button,
+    .st-key-latest_button button,
+    .st-key-priciest_button button {
     
         width: 100% !important;
         min-height: 48px !important;
@@ -320,7 +328,11 @@ def inject_cabin_and_passenger_style() -> None:
     .st-key-unspecified_button button p,
     .st-key-passenger_enter_button button p,
     .st-key-passenger_default_button button p,
-    .st-key-save_passenger_counts_button button p {
+    .st-key-save_passenger_counts_button button p,
+    .st-key-cheapest_button button p,
+    .st-key-earliest_button button p,
+    .st-key-latest_button button p,
+    .st-key-priciest_button button p {
     
         font-family: 'Vazirmatn', sans-serif !important;
         color: #1f2937 !important;
@@ -338,7 +350,11 @@ def inject_cabin_and_passenger_style() -> None:
     .st-key-unspecified_button button:hover,
     .st-key-passenger_enter_button button:hover,
     .st-key-passenger_default_button button:hover,
-    .st-key-save_passenger_counts_button button:hover {
+    .st-key-save_passenger_counts_button button:hover,
+    .st-key-cheapest_button button:hover,
+    .st-key-earliest_button button:hover,
+    .st-key-latest_button button:hover,
+    .st-key-priciest_button button:hover {
     
         background: rgba(37, 99, 235, 0.16) !important;
     
@@ -360,7 +376,11 @@ def inject_cabin_and_passenger_style() -> None:
     .st-key-unspecified_button button:active,
     .st-key-passenger_enter_button button:active,
     .st-key-passenger_default_button button:active,
-    .st-key-save_passenger_counts_button button:active {
+    .st-key-save_passenger_counts_button button:active,
+    .st-key-cheapest_button button:active,
+    .st-key-earliest_button button:active,
+    .st-key-latest_button button:active,
+    .st-key-priciest_button button:active {
     
         transform: translateY(0) scale(0.98) !important;
     }
@@ -1366,8 +1386,6 @@ align-items:center;
 
 }
 
-
-
 .airline-name{
     display:flex;
     align-items:center;
@@ -1546,10 +1564,9 @@ margin:15px 0;
 }
 
 
+[class*="st-key-select_flight_"] button {
 
-.select-flight{
-
-background:#3158db !important;
+ background:#3158db !important;
 
 color:white !important;
 
@@ -1562,7 +1579,6 @@ border-radius:14px;
 display:inline-block;
 
 text-decoration:none !important;
-
 }
 
 

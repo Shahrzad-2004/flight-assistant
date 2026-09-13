@@ -683,6 +683,13 @@ elif current_ui == "confirmation":
     <span class="confirmation-label">کلاس پرواز:</span>
     <span class="confirmation-value">{get_cabin_label(flight_state.get("cabin_class"))}</span>
     </div>
+
+    <div class="confirmation-row">
+    <span class="confirmation-label">مرتب‌سازی بر اساس:</span>
+    <span class="confirmation-value">{get_sort_label(flight_state.get("sort_by"))}</span>
+    </div>
+    </div>
+
     </div>
     """,
         unsafe_allow_html=True

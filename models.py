@@ -75,6 +75,13 @@ class FlightRequest(BaseModel):
             "مقدار null و اگر گفت اهمیت ندارد unspecified باشد"
         )
     )
+    cabin_class_provided: bool = Field(
+        default=False,
+        description=(
+            "آیا کاربر در همین پیام صراحتاً به کلاس پرواز "
+            "اشاره کرده است؟"
+        )
+    )
 
     max_price_toman: Optional[int] = Field(
         default=None,
@@ -103,4 +110,12 @@ class FlightRequest(BaseModel):
     ] = Field(
         default=None,
         description="معیار اصلی انتخاب پرواز"
+    )
+
+    sort_by_provided: bool = Field(
+        default=False,
+        description=(
+            "آیا کاربر در همین پیام صراحتاً معیار مرتب‌سازی پروازها "
+            "(ارزان‌ترین، زودترین، دیرترین، گران‌ترین) را مشخص کرده است؟"
+        )
     )
