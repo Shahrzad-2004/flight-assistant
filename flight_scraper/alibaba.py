@@ -88,6 +88,22 @@ JALALI_MONTHS = {
     11: "بهمن",
     12: "اسفند"
 }
+SORT_TAB_LABELS = {
+    "cheapest": "ارزان‌ترین",
+    "earliest": "زودترین",
+    "latest": "دیرترین",
+    "priciest": "گرانترین",
+}
+def apply_sort(page, sort_by):
+    if not sort_by:
+        return
+
+    label = SORT_TAB_LABELS.get(sort_by)
+    if not label:
+        return
+
+    page.get_by_role("button", name=label).click()
+    page.wait_for_timeout(1500)
 AIRLINE_LOGOS = {
     "زاگرس": {
         "logo":"airlines/ZG.svg"
@@ -97,6 +113,15 @@ AIRLINE_LOGOS = {
     },
     "آتا": {
             "logo":"airlines/AT.svg"
+        },
+    "معراج": {
+            "logo":"airlines/MJ.svg"
+        },
+    "وارش": {
+            "logo":"airlines/VR.png"
+        },
+    "ماهان": {
+            "logo":"airlines/W5.png"
         },
 }
 def select_departure_date(page, date_str):
@@ -196,7 +221,8 @@ def search_alibaba(
     departure_date,
     adults,
     children,
-    infants):
+    infants,
+    sort_by=None  ):
 
     with sync_playwright() as p:
 

@@ -1,4 +1,6 @@
+import streamlit as st
 from .alibaba import search_alibaba
+from playwright_worker import get_playwright_executor
 
 
 def search_all_flights(
@@ -10,18 +12,24 @@ def search_all_flights(
     infants,
     sort_by=None
 ):
+    executor = get_playwright_executor()
 
-    results = []
-
-    alibaba_results = search_alibaba(
+    future = executor.submit(
+        search_alibaba,
         origin,
         destination,
         departure_date,
         adults,
         children,
-        infants
+        infants,
+        sort_by=sort_by
     )
 
-    results.extend(alibaba_results)
+    flights, page, playwright, browser = future.result()
 
-    return results
+    # 👇 این خط الان تو Thread اصلیِ اسکریپت اجرا می‌شه، نه Worker
+    st.session_state["alibaba_page"] = page
+    st.session_state["alibaba_playwright"] = playwright
+    st.session_state["alibaba_browser"] = browser
+
+    return flights

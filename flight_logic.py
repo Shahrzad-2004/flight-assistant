@@ -191,6 +191,42 @@ def create_flight_extractor():
 - هیچ‌وقت به صورت خودکار یک بزرگسال در نظر نگیر.
   مقدار پیش‌فرض یک بزرگسال فقط بعداً و در صورت انتخاب کاربر
   توسط برنامه اعمال می‌شود.
+
+- اگر کاربر هیچ اشاره‌ای به کلاس پرواز نکرده است:
+  cabin_class = null
+  cabin_class_provided = false
+- اگر کاربر صراحتاً کلاس پرواز را گفت (اکونومی، بیزینس، فرست)
+  یا گفت برایش فرقی نمی‌کند:
+  cabin_class مقدار مناسب و cabin_class_provided = true
+- مثال:
+  «تهران مشهد سه روز دیگه یک نفر اکونومی»
+  cabin_class = "economy"
+  cabin_class_provided = true
+- مثال:
+  «تهران مشهد سه روز دیگه یک نفر»
+  cabin_class = null
+  cabin_class_provided = false
+
+- اگر کاربر هیچ اشاره‌ای به معیار مرتب‌سازی پروازها
+  (ارزان‌ترین، زودترین، دیرترین، گران‌ترین) نکرده است:
+  sort_by = null
+  sort_by_provided = false
+- ذکر کلاس پرواز، تعداد مسافران، تاریخ یا هر اطلاعات دیگری
+  به‌تنهایی به‌معنای مشخص‌کردن sort_by نیست؛ فقط وقتی کاربر
+  صریحاً درباره‌ی ارزان‌ترین/زودترین/دیرترین/گران‌ترین بودن
+  پرواز چیزی گفته باشد، sort_by_provided را true قرار بده.
+- مثال:
+  «تهران مشهد سه روز دیگه یک نفر اکونومی»
+  sort_by = null
+  sort_by_provided = false
+- مثال:
+  «ارزون‌ترین پرواز رو می‌خوام»
+  sort_by = "cheapest"
+  sort_by_provided = true
+- مثال:
+  «زودترین پرواز ممکن رو بهم نشون بده»
+  sort_by = "earliest"
+  sort_by_provided = true
 """
         ),
         (
@@ -309,7 +345,13 @@ def merge_flight_state(new_request: FlightRequest):
     # این دو فیلد را جدا مدیریت می‌کنیم
     new_data.pop("is_flight_request", None)
     new_data.pop("passenger_count_provided", None)
+    cabin_class_provided = new_data.pop("cabin_class_provided", False)
+    sort_by_provided = new_data.pop("sort_by_provided", False)
+    if not cabin_class_provided:
+        new_data["cabin_class"] = None
 
+    if not sort_by_provided:
+        new_data["sort_by"] = None
     # فقط اطلاعاتی که در پیام جدید وجود دارند
     # روی اطلاعات قبلی نوشته می‌شوند
     for key, value in new_data.items():
