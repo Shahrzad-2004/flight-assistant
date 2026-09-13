@@ -1,6 +1,9 @@
 from typing import TypedDict, Optional, Literal
 from langgraph.graph import StateGraph, START, END
 from flight_scraper.scraper_manager import search_all_flights
+from flight_scraper.alibaba import IATA_CODES
+
+SUPPORTED_CITIES = set(IATA_CODES.keys())
 
 
 class FlightState(TypedDict, total=False):
@@ -60,7 +63,8 @@ class FlightState(TypedDict, total=False):
         "passenger_choice",
         "passenger_counter",
         "confirmation",
-        "search"
+        "search",
+        "invalid_city"
     ]
 
     confirmation_status: Literal[
@@ -70,9 +74,9 @@ class FlightState(TypedDict, total=False):
     ]
 
 
-# =========================================================
-# 1) بررسی اطلاعات ضروری
-# =========================================================
+
+#  بررسی اطلاعات ضروری
+
 def check_required_fields(state: FlightState) -> dict:
     """فقط بررسی می‌کند که اطلاعات ضروری کامل هستند یا نه."""
     return {}
@@ -90,7 +94,48 @@ def route_required_fields(state: FlightState) -> str:
 
     return "complete"
 
+def validate_cities(state: FlightState) -> dict:
+    origin = (state.get("origin") or "").strip()
+    destination = (state.get("destination") or "").strip()
 
+    if origin and origin not in SUPPORTED_CITIES:
+        return {
+            **state,
+            "origin": None,  # پاک‌کردن مبدأ نامعتبر
+            "current_step": "invalid_city",
+            "assistant_message": (
+                f"شهر مبدأ «{origin}» در فهرست شهرهای "
+                "پشتیبانی‌شده نیست. لطفاً مبدأ دیگری وارد کنید."
+            ),
+            "ui_type": "chat_input",
+            "flights": [],
+        }
+
+    if destination and destination not in SUPPORTED_CITIES:
+        return {
+            **state,
+            "destination": None,  # پاک‌کردن مقصد نامعتبر
+            "current_step": "invalid_city",
+            "assistant_message": (
+                f"شهر مقصد «{destination}» در فهرست شهرهای "
+                "پشتیبانی‌شده نیست. لطفاً مقصد دیگری وارد کنید."
+            ),
+            "ui_type": "chat_input",
+            "flights": [],
+        }
+
+    return {
+        **state,
+        "current_step": "cities_valid",
+        "assistant_message": "",
+    }
+
+
+def route_city_validation(state: FlightState) -> str:
+    if state.get("current_step") == "invalid_city":
+        return "invalid"
+
+    return "valid"
 def ask_required_fields(state: FlightState) -> FlightState:
     missing_fields = []
 
@@ -263,18 +308,13 @@ def search_flights(state: FlightState) -> FlightState:
         ]
     if not flights:
         return {
-
             **state,
-
             "current_step": "search",
-
-            "assistant_message":
-                "متاسفانه برای مسیر مورد نظر شما در این تاریخ پروازی "
-                "وجود ندارد یا ظرفیت پروازهای موجود تکمیل شده است. "
-                "لطفا تاریخ دیگری را جستجو کنید.",
-
+            "assistant_message": (
+                "برای این مسیر و تاریخ پروازی پیدا نشد. "
+                "لطفاً نام شهرها یا تاریخ را بررسی کنید."
+            ),
             "ui_type": "search",
-
             "flights": []
         }
 
@@ -297,12 +337,14 @@ def search_flights(state: FlightState) -> FlightState:
 graph_builder = StateGraph(FlightState)
 
 # نودهای بررسی
+graph_builder.add_node("validate_cities", validate_cities)
 graph_builder.add_node("check_required_fields", check_required_fields)
 graph_builder.add_node("check_passenger_status", check_passenger_status)
 graph_builder.add_node("check_cabin_class", check_cabin_class)
 graph_builder.add_node("check_confirmation_status", check_confirmation_status)
 
 # نودهای رابط کاربری / عملیات
+
 graph_builder.add_node("ask_required_fields", ask_required_fields)
 graph_builder.add_node("ask_passenger_choice", ask_passenger_choice)
 graph_builder.add_node("enter_passengers", enter_passengers)
@@ -315,11 +357,20 @@ graph_builder.add_node("search_flights", search_flights)
 
 
 # شروع گراف
-graph_builder.add_edge(START, "check_required_fields")
+graph_builder.add_edge(START, "validate_cities")
 
 
 # اگر اطلاعات ضروری ناقص بود → سؤال بپرس
 # اگر کامل بود → برو سراغ مسافران
+
+graph_builder.add_conditional_edges(
+    "validate_cities",
+    route_city_validation,
+    {
+        "invalid": END,
+        "valid": "check_required_fields",
+    }
+)
 graph_builder.add_conditional_edges(
     "check_required_fields",
     route_required_fields,

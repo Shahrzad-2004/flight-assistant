@@ -1,4 +1,5 @@
 from playwright.sync_api import sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 import re
 from datetime import datetime
 import jdatetime
@@ -123,6 +124,18 @@ AIRLINE_LOGOS = {
     "ماهان": {
             "logo":"airlines/W5.png"
         },
+    "سپهران": {
+            "logo":"airlines/ُSR.png"
+        },
+    "کارون": {
+            "logo":"airlines/ُNV.png"
+        },
+    "جی اسکای": {
+            "logo":"airlines/ُJS.png"
+        },
+    "تابان": {
+            "logo":"airlines/ُHH.png"
+        },
 }
 def select_departure_date(page, date_str):
 
@@ -193,6 +206,28 @@ def select_passengers(page, adults, children, infants):
 
     for _ in range(infants):
         infant_add.click()
+
+
+
+def select_city(page, city, field_name):
+    city_input = page.get_by_role("textbox", name=field_name)
+
+    city_input.click()
+    city_input.fill("")
+    city_input.fill(city)
+
+    option = page.get_by_text(
+        re.compile(rf"^\s*{re.escape(city.strip())}\s*$")
+    ).last
+
+    try:
+        option.wait_for(state="visible", timeout=7000)
+        option.click()
+        return True
+
+    except PlaywrightTimeoutError:
+        print(f"گزینهٔ شهر پیدا نشد: {city}")
+        return False
 def load_all_flights(page):
 
             previous_count = 0
@@ -236,25 +271,13 @@ def search_alibaba(
             "https://www.alibaba.ir"
         )
 
-        origin_input = page.get_by_role(
-            "textbox",
-            name="مبدا (شهر)"
-        )
+        if not select_city(page, origin, "مبدا (شهر)"):
+            print(f"شهر مبدا در علی‌بابا پیدا نشد: {origin}")
+            return []
 
-        origin_input.fill(origin)
-
-
-        origin_option = page.locator("a").filter(has_text=re.compile(
-        rf"^{re.escape(origin)}$"))
-        origin_option.click()
-
-
-        destination_input = page.get_by_role(
-            "textbox", name="مقصد (شهر)")
-        
-        destination_input.fill(destination)
-        destination_option = page.locator("a").filter(has_text=re.compile(rf"^{re.escape(destination)}$"))
-        destination_option.click()
+        if not select_city(page, destination, "مقصد (شهر)"):
+            print(f"شهر مقصد در علی‌بابا پیدا نشد: {destination}")
+            return []
 
         select_departure_date(
             page,
@@ -273,114 +296,121 @@ def search_alibaba(
 
         search_button.click()
 
-        
-        page.wait_for_timeout(5000)
+        try:    
+            page.wait_for_timeout(5000)
 
-        price_boxes = page.locator("span").filter(
-            has_text=re.compile(
-                r"^\s*\d{1,3}(?:,\d{3})+\s*تومان\s*$"
-            )
-        )
-
-        flights = []
-
-        for i in range(price_boxes.count()):
-
-            try:
-                price = price_boxes.nth(i)
-
-                card = price.locator(
-                    "xpath=ancestor::div[contains(@class,'a-card')][1]"
+            price_boxes = page.locator("span").filter(
+                has_text=re.compile(
+                    r"^\s*\d{1,3}(?:,\d{3})+\s*تومان\s*$"
                 )
+            )
 
-                lines = [
-                    line.strip()
-                    for line in card.inner_text().splitlines()
-                    if line.strip()
-                ]
+            flights = []
 
-                if not lines:
-                    continue
-                
+            for i in range(price_boxes.count()):
 
-                airline = lines[0]
-                airline_info = AIRLINE_LOGOS.get(airline)
-                airline_logo = airline_info["logo"] if airline_info else None
+                try:
+                    price = price_boxes.nth(i)
 
-                time_pattern = re.compile(r"^\d{1,2}:\d{2}$")
-                times = [line for line in lines if time_pattern.match(line)]
-
-                departure_time = times[0] if len(times) > 0 else None
-                arrival_time = times[1] if len(times) > 1 else None
-
-                if departure_time is None or arrival_time is None:
-                    continue
-
-                remaining_seats = None
-                for line in lines:
-                    if "صندلی باقی مانده" in line:
-                        remaining_seats = line
-                        break
-
-                wheelchair_note = None
-                for line in lines:
-                    if "ویلچر" in line:
-                        wheelchair_note = line
-                        break
-
-                aircraft = None
-                for line in lines:
-                    if re.search(r"boeing|airbus|فوکر|ATR|CRJ", line, re.IGNORECASE):
-                        aircraft = line
-                        break
-
-                cabin_class = None
-                for line in lines:
-                    if any(
-                        keyword in line
-                        for keyword in ["اکونومی", "بیزینس", "فرست"]
-                    ):
-                        cabin_class = line
-                        break
-
-                flight_type = None
-                for line in lines:
-                    if line in ("چارتری", "سیستمی"):
-                        flight_type = line
-                        break
-
-                flight = {
-                    "airline": airline,
-                    "airline_logo":airline_logo,
-                    "flight_type": flight_type,
-                    "cabin_class": cabin_class,
-                    "aircraft": aircraft,
-                    "origin": origin,
-                    "departure_time": departure_time,
-                    "destination": destination,
-                    "arrival_time": arrival_time,
-                    "price": price.inner_text().strip(),
-                    "remaining_seats": remaining_seats,
-                    "wheelchair_note": wheelchair_note,
-                    "source": "علی‌بابا",
-                    "source_url": build_alibaba_url(
-                        origin,
-                        destination,
-                        departure_date,
-                        adults,
-                        children,
-                        infants
+                    card = price.locator(
+                        "xpath=ancestor::div[contains(@class,'a-card')][1]"
                     )
-                }
 
-                flights.append(flight)
+                    lines = [
+                        line.strip()
+                        for line in card.inner_text().splitlines()
+                        if line.strip()
+                    ]
 
-            except Exception as e:
-                print("خطا در پردازش یک کارت پرواز، رد شد:", e)
-                continue
+                    if not lines:
+                        continue
+                    
+
+                    airline = lines[0]
+                    airline_info = AIRLINE_LOGOS.get(airline)
+                    airline_logo = airline_info["logo"] if airline_info else None
+
+                    time_pattern = re.compile(r"^\d{1,2}:\d{2}$")
+                    times = [line for line in lines if time_pattern.match(line)]
+
+                    departure_time = times[0] if len(times) > 0 else None
+                    arrival_time = times[1] if len(times) > 1 else None
+
+                    if departure_time is None or arrival_time is None:
+                        continue
+
+                    remaining_seats = None
+                    for line in lines:
+                        if "صندلی باقی مانده" in line:
+                            remaining_seats = line
+                            break
+
+                    wheelchair_note = None
+                    for line in lines:
+                        if "ویلچر" in line:
+                            wheelchair_note = line
+                            break
+
+                    aircraft = None
+                    for line in lines:
+                        if re.search(r"boeing|airbus|فوکر|ATR|CRJ", line, re.IGNORECASE):
+                            aircraft = line
+                            break
+
+                    cabin_class = None
+                    for line in lines:
+                        if any(
+                            keyword in line
+                            for keyword in ["اکونومی", "بیزینس", "فرست"]
+                        ):
+                            cabin_class = line
+                            break
+
+                    flight_type = None
+                    for line in lines:
+                        if line in ("چارتری", "سیستمی"):
+                            flight_type = line
+                            break
+
+                    flight = {
+                        "airline": airline,
+                        "airline_logo":airline_logo,
+                        "flight_type": flight_type,
+                        "cabin_class": cabin_class,
+                        "aircraft": aircraft,
+                        "origin": origin,
+                        "departure_time": departure_time,
+                        "destination": destination,
+                        "arrival_time": arrival_time,
+                        "price": price.inner_text().strip(),
+                        "remaining_seats": remaining_seats,
+                        "wheelchair_note": wheelchair_note,
+                        "source": "علی‌بابا",
+                        "source_url": build_alibaba_url(
+                            origin,
+                            destination,
+                            departure_date,
+                            adults,
+                            children,
+                            infants
+                        )
+                    }
+
+                    flights.append(flight)
+
+                    
+                except Exception as e:
+                    print("خطا در جستجوی علی‌بابا:", e)
+                    return []
+            return flights
+        finally:
+            if not page.is_closed():
+                page.close()
+
+            if browser.is_connected():
+                browser.close()
         
-        browser.close()
-        return flights
+        
 
 
 if __name__ == "__main__":
