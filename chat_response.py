@@ -19,9 +19,18 @@ def handle_user_prompt(prompt: str) -> None:
                         {}
                     )
 
+                    # اگر درخواست قبلی شهر نامعتبر داشت،
+                    # شهرهای قبلی نباید وارد درخواست جدید شوند
+                    state_for_extraction = previous_state.copy()
+
+                    if previous_state.get("current_step") == "invalid_city":
+                        state_for_extraction["origin"] = None
+                        state_for_extraction["destination"] = None
+                        state_for_extraction["departure_date"] = None
+
                     flight_request = extract_flight_request(
                         prompt,
-                        previous_state
+                        state_for_extraction
                     )
                     print(
                     "Passengers:",
@@ -43,7 +52,9 @@ def handle_user_prompt(prompt: str) -> None:
 
                     if previous_state.get("confirmation_status") == "editing":
                         current_state["confirmation_status"] = "pending"
-                        
+                    print("ORIGIN BEFORE GRAPH:", current_state.get("origin"))
+                    print("DESTINATION BEFORE GRAPH:", current_state.get("destination"))
+                    print("STEP BEFORE GRAPH:", current_state.get("current_step"))
                     graph_result = flight_graph.invoke(current_state)
 
                     st.session_state["flight_state"] = graph_result

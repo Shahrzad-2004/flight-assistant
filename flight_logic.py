@@ -355,7 +355,6 @@ def merge_flight_state(new_request: FlightRequest):
     # فقط اطلاعاتی که در پیام جدید وجود دارند
     # روی اطلاعات قبلی نوشته می‌شوند
     for key, value in new_data.items():
-
         if value is not None:
             current_state[key] = value
 

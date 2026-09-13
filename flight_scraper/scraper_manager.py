@@ -25,11 +25,5 @@ def search_all_flights(
         sort_by=sort_by
     )
 
-    flights, page, playwright, browser = future.result()
-
-    # 👇 این خط الان تو Thread اصلیِ اسکریپت اجرا می‌شه، نه Worker
-    st.session_state["alibaba_page"] = page
-    st.session_state["alibaba_playwright"] = playwright
-    st.session_state["alibaba_browser"] = browser
-
+    flights = future.result()
     return flights
