@@ -442,6 +442,9 @@ src="{ airline_logo_data }" >
 انتخاب پرواز
 </a>
 
+<span class="flight-source">
+    منبع: {flight.get("source", "نامشخص")}
+</span>
 
 </div>
 
