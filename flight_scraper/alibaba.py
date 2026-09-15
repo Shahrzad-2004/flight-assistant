@@ -136,6 +136,9 @@ AIRLINE_LOGOS = {
     "تابان": {
             "logo":"airlines/ُHH.png"
         },
+    "آساجت": {
+            "logo":"airlines/ُSJ.png"
+        },
 }
 def select_departure_date(page, date_str):
 
