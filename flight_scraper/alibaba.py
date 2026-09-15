@@ -383,6 +383,9 @@ def search_alibaba(
                         "destination": destination,
                         "arrival_time": arrival_time,
                         "price": price.inner_text().strip(),
+                        "price_value": int(
+                            re.sub(r"[^\d]", "", price.inner_text())
+                        ),
                         "remaining_seats": remaining_seats,
                         "wheelchair_note": wheelchair_note,
                         "source": "علی‌بابا",
