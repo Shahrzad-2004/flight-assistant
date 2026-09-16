@@ -2,24 +2,24 @@ from typing import TypedDict, Optional, Literal
 from langgraph.graph import StateGraph, START, END
 from flight_scraper.scraper_manager import search_all_flights
 from flight_scraper.alibaba import IATA_CODES
-
+ 
 SUPPORTED_CITIES = set(IATA_CODES.keys())
-
-
+ 
+ 
 class FlightState(TypedDict, total=False):
     # متن فعلی کاربر
     user_text: str
-
+ 
     # اطلاعات اصلی پرواز
     origin: Optional[str]
     destination: Optional[str]
     departure_date: Optional[str]
     return_date: Optional[str]
-
+ 
     trip_type: Optional[
         Literal["one_way", "round_trip"]
     ]
-
+ 
     # کلاس پرواز
     cabin_class: Optional[
         Literal[
@@ -37,25 +37,27 @@ class FlightState(TypedDict, total=False):
             "priciest"
         ]
     ]
-
+ 
+    max_price_toman: Optional[int]
+ 
     # تعداد مسافران
     adults: Optional[int]
     children: Optional[int]
     infants: Optional[int]
-
+ 
     passengers_confirmed: bool
-
+ 
     passenger_status: Literal[
         "unknown",
         "entering",
         "resolved"
     ]
-
+ 
     # اطلاعات مربوط به رابط کاربری
     current_step: str
     assistant_message: str
     flights: list
-
+ 
     ui_type: Literal[
         "chat_input",
         "cabin_buttons",
@@ -66,38 +68,38 @@ class FlightState(TypedDict, total=False):
         "search",
         "invalid_city"
     ]
-
+ 
     confirmation_status: Literal[
         "pending",
         "confirmed",
         "editing"
     ]
-
-
-
+ 
+ 
+ 
 #  بررسی اطلاعات ضروری
-
+ 
 def check_required_fields(state: FlightState) -> dict:
     """فقط بررسی می‌کند که اطلاعات ضروری کامل هستند یا نه."""
     return {}
-
-
+ 
+ 
 def route_required_fields(state: FlightState) -> str:
     if not state.get("origin"):
         return "missing"
-
+ 
     if not state.get("destination"):
         return "missing"
-
+ 
     if not state.get("departure_date"):
         return "missing"
-
+ 
     return "complete"
-
+ 
 def validate_cities(state: FlightState) -> dict:
     origin = (state.get("origin") or "").strip()
     destination = (state.get("destination") or "").strip()
-
+ 
     if origin and origin not in SUPPORTED_CITIES:
         return {
             **state,
@@ -110,7 +112,7 @@ def validate_cities(state: FlightState) -> dict:
             "ui_type": "chat_input",
             "flights": [],
         }
-
+ 
     if destination and destination not in SUPPORTED_CITIES:
         return {
             **state,
@@ -123,33 +125,33 @@ def validate_cities(state: FlightState) -> dict:
             "ui_type": "chat_input",
             "flights": [],
         }
-
+ 
     return {
         **state,
         "current_step": "cities_valid",
         "assistant_message": "",
     }
-
-
+ 
+ 
 def route_city_validation(state: FlightState) -> str:
     if state.get("current_step") == "invalid_city":
         return "invalid"
-
+ 
     return "valid"
 def ask_required_fields(state: FlightState) -> FlightState:
     missing_fields = []
-
+ 
     if not state.get("origin"):
         missing_fields.append("مبدأ")
-
+ 
     if not state.get("destination"):
         missing_fields.append("مقصد")
-
+ 
     if not state.get("departure_date"):
         missing_fields.append("تاریخ حرکت")
-
+ 
     fields_text = "، ".join(missing_fields)
-
+ 
     return {
         "current_step": "ask_required_fields",
         "assistant_message": (
@@ -157,59 +159,59 @@ def ask_required_fields(state: FlightState) -> FlightState:
         ),
         "ui_type": "chat_input"
     }
-
-
+ 
+ 
 # =========================================================
 # 2) بررسی وضعیت تعداد مسافران
 # =========================================================
 def check_passenger_status(state: FlightState) -> dict:
     """فقط وضعیت مرحله‌ی مسافران را بررسی می‌کند."""
     return {}
-
-
+ 
+ 
 def route_passenger_status(state: FlightState) -> str:
     passenger_status = state.get("passenger_status", "unknown")
-
+ 
     if passenger_status == "unknown":
         return "unknown"
-
+ 
     if passenger_status == "entering":
         return "entering"
-
+ 
     return "resolved"
-
-
+ 
+ 
 def ask_passenger_choice(state: FlightState) -> FlightState:
     return {
         "current_step": "ask_passenger_choice",
         "assistant_message": "آیا می‌خواهید تعداد مسافران را مشخص کنید؟",
         "ui_type": "passenger_choice"
     }
-
-
+ 
+ 
 def enter_passengers(state: FlightState) -> FlightState:
     return {
         "current_step": "enter_passengers",
         "assistant_message": "تعداد بزرگسال، کودک و نوزاد را مشخص کنید.",
         "ui_type": "passenger_counter"
     }
-
-
+ 
+ 
 # =========================================================
 # 3) بررسی کلاس پرواز
 # =========================================================
 def check_cabin_class(state: FlightState) -> dict:
     """بررسی می‌کند کلاس پرواز مشخص شده یا نه."""
     return {}
-
-
+ 
+ 
 def route_cabin_class(state: FlightState) -> str:
     if state.get("cabin_class") is None:
         return "missing"
-
+ 
     return "complete"
-
-
+ 
+ 
 def ask_cabin_class(state: FlightState) -> FlightState:
     return {
         "current_step": "ask_cabin_class",
@@ -219,74 +221,74 @@ def ask_cabin_class(state: FlightState) -> FlightState:
 def check_sort_by(state: FlightState) -> dict:
     """بررسی می‌کند معیار مرتب‌سازی پروازها مشخص شده یا نه."""
     return {}
-
-
+ 
+ 
 def route_sort_by(state: FlightState) -> str:
     if state.get("sort_by") is None:
         return "missing"
-
+ 
     return "complete"
-
-
+ 
+ 
 def ask_sort_by(state: FlightState) -> FlightState:
     return {
         "current_step": "ask_sort_by",
         "assistant_message": "پروازها بر چه اساسی مرتب شوند؟",
         "ui_type": "sort_buttons"
     }
-
+ 
 # =========================================================
 # 4) بررسی تأیید نهایی
 # =========================================================
 def check_confirmation_status(state: FlightState) -> dict:
     """وضعیت تأیید نهایی درخواست را بررسی می‌کند."""
     return {}
-
-
+ 
+ 
 def route_confirmation_status(state: FlightState) -> str:
     confirmation_status = state.get("confirmation_status", "pending")
-
+ 
     if confirmation_status == "confirmed":
         return "confirmed"
-
+ 
     if confirmation_status == "editing":
         return "editing"
-
+ 
     return "pending"
-
-
+ 
+ 
 def show_confirmation(state: FlightState) -> FlightState:
     return {
         "current_step": "confirmation",
         "assistant_message": "اطلاعات پرواز تکمیل شد. آیا آن را تأیید می‌کنید؟",
         "ui_type": "confirmation"
     }
-
-
+ 
+ 
 def edit_request(state: FlightState) -> FlightState:
     return {
         "current_step": "edit_request",
         "assistant_message": "چه اطلاعاتی را می‌خواهید تغییر دهید؟",
         "ui_type": "chat_input"
     }
-
-
+ 
+ 
 CABIN_CLASS_KEYWORDS = {
     "economy": "اکونومی",
     "business": "بیزینس",
     "first": "فرست",
 }
-
+ 
 ALIBABA_SORT_TABS = {
     "cheapest": "ارزان‌ترین",
     "earliest": "زودترین",
     "latest": "دیرترین",
     "priciest": "گران‌ترین",
 }
-
-
+ 
+ 
 def search_flights(state: FlightState) -> FlightState:
-
+ 
     flights = search_all_flights(
         origin=state["origin"],
         destination=state["destination"],
@@ -296,55 +298,64 @@ def search_flights(state: FlightState) -> FlightState:
         infants=state.get("infants", 0),
         sort_by=state.get("sort_by")
     )
-
+ 
     preferred_cabin = state.get("cabin_class")
     keyword = CABIN_CLASS_KEYWORDS.get(preferred_cabin)
-
+ 
     if keyword:
         flights = [
             flight
             for flight in flights
             if keyword in (flight.get("cabin_class") or "")
         ]
+ 
+    max_price = state.get("max_price_toman")
+    if max_price:
+        flights = [
+            flight
+            for flight in flights
+            if flight.get("price_value") and flight["price_value"] <= max_price
+        ]
+ 
     if not flights:
         return {
             **state,
             "current_step": "search",
             "assistant_message": (
-                "برای این مسیر و تاریخ پروازی پیدا نشد. "
-                "لطفاً نام شهرها یا تاریخ را بررسی کنید."
+                "برای این مسیر و تاریخ (یا در این سقف قیمت) پروازی پیدا نشد. "
+                "لطفاً نام شهرها، تاریخ یا بودجه را بررسی کنید."
             ),
             "ui_type": "search",
             "flights": []
         }
-
+ 
     return {
-
+ 
         **state,
-
+ 
         "current_step": "search",
-
+ 
         "assistant_message":
             f"{len(flights)} پرواز پیدا شد.",
-
+ 
         "ui_type": "search",
-
+ 
         "flights": flights
     }
-
-
+ 
+ 
 # ساخت گراف
 graph_builder = StateGraph(FlightState)
-
+ 
 # نودهای بررسی
 graph_builder.add_node("validate_cities", validate_cities)
 graph_builder.add_node("check_required_fields", check_required_fields)
 graph_builder.add_node("check_passenger_status", check_passenger_status)
 graph_builder.add_node("check_cabin_class", check_cabin_class)
 graph_builder.add_node("check_confirmation_status", check_confirmation_status)
-
+ 
 # نودهای رابط کاربری / عملیات
-
+ 
 graph_builder.add_node("ask_required_fields", ask_required_fields)
 graph_builder.add_node("ask_passenger_choice", ask_passenger_choice)
 graph_builder.add_node("enter_passengers", enter_passengers)
@@ -354,15 +365,15 @@ graph_builder.add_node("ask_sort_by", ask_sort_by)
 graph_builder.add_node("show_confirmation", show_confirmation)
 graph_builder.add_node("edit_request", edit_request)
 graph_builder.add_node("search_flights", search_flights)
-
-
+ 
+ 
 # شروع گراف
 graph_builder.add_edge(START, "validate_cities")
-
-
+ 
+ 
 # اگر اطلاعات ضروری ناقص بود → سؤال بپرس
 # اگر کامل بود → برو سراغ مسافران
-
+ 
 graph_builder.add_conditional_edges(
     "validate_cities",
     route_city_validation,
@@ -379,8 +390,8 @@ graph_builder.add_conditional_edges(
         "complete": "check_passenger_status"
     }
 )
-
-
+ 
+ 
 # وضعیت مسافران
 graph_builder.add_conditional_edges(
     "check_passenger_status",
@@ -391,8 +402,8 @@ graph_builder.add_conditional_edges(
         "resolved": "check_cabin_class"
     }
 )
-
-
+ 
+ 
 # کلاس پرواز
 # کلاس پرواز
 graph_builder.add_conditional_edges(
@@ -403,8 +414,8 @@ graph_builder.add_conditional_edges(
         "complete": "check_sort_by"
     }
 )
-
-
+ 
+ 
 # معیار مرتب‌سازی
 graph_builder.add_conditional_edges(
     "check_sort_by",
@@ -414,8 +425,8 @@ graph_builder.add_conditional_edges(
         "complete": "check_confirmation_status"
     }
 )
-
-
+ 
+ 
 # وضعیت تأیید
 graph_builder.add_conditional_edges(
     "check_confirmation_status",
@@ -426,8 +437,8 @@ graph_builder.add_conditional_edges(
         "pending": "show_confirmation"
     }
 )
-
-
+ 
+ 
 # نودهایی که باید نتیجه را به UI برگردانند، فعلاً پایان اجرای این دور هستند
 graph_builder.add_edge("ask_required_fields", END)
 graph_builder.add_edge("ask_passenger_choice", END)
@@ -437,7 +448,7 @@ graph_builder.add_edge("ask_sort_by", END)
 graph_builder.add_edge("show_confirmation", END)
 graph_builder.add_edge("edit_request", END)
 graph_builder.add_edge("search_flights", END)
-
-
+ 
+ 
 # آماده‌سازی گراف برای اجرا
 flight_graph = graph_builder.compile()

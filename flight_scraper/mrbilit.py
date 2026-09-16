@@ -127,10 +127,11 @@ def apply_sort(page, sort_by):
         print(f"تب مرتب‌سازی «{label}» توی مستربلیط پیدا نشد - رد شدیم")
  
  
-def select_city(page, city, placeholder):
-    """انتخاب شهر مبدأ/مقصد بر اساس placeholder فیلد (مطابق ساختار فعلی مستربلیط)."""
+def select_city(page, city, placeholder, timeout=25000):
+    """انتخاب شهر مبدأ/مقصد بر اساس placeholder فیلد (مطابق ساختار فعلی مستربلیط).
+    timeout به میلی‌ثانیه‌ست؛ روی نت کند مقدار بزرگ‌تری پاس بده."""
     city_input = page.get_by_placeholder(placeholder, exact=True)
-    city_input.click()
+    city_input.click(timeout=timeout)
     city_input.fill(city)
  
     option = page.get_by_text(
@@ -138,8 +139,8 @@ def select_city(page, city, placeholder):
     ).first
  
     try:
-        option.wait_for(state="visible", timeout=7000)
-        option.click()
+        option.wait_for(state="visible", timeout=timeout)
+        option.click(timeout=timeout)
         return True
     except PlaywrightTimeoutError:
         print(f"گزینهٔ شهر پیدا نشد: {city}")
@@ -228,23 +229,25 @@ def search_mrbilit(
     children,
     infants,
     sort_by=None,
+    city_timeout=25000,
 ):
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
+        page.set_default_timeout(city_timeout)
  
         try:
             page.goto(
                 "https://mrbilit.com/plane-ticket",
                 wait_until="domcontentloaded",
-                timeout=60000,
+                timeout=90000,
             )
  
-            if not select_city(page, origin, "فرودگاه مبدأ"):
+            if not select_city(page, origin, "فرودگاه مبدأ", timeout=city_timeout):
                 print(f"شهر مبدا در مستربلیط پیدا نشد: {origin}")
                 return []
  
-            if not select_city(page, destination, "فرودگاه مقصد"):
+            if not select_city(page, destination, "فرودگاه مقصد", timeout=city_timeout):
                 print(f"شهر مقصد در مستربلیط پیدا نشد: {destination}")
                 return []
  
@@ -388,4 +391,3 @@ if __name__ == "__main__":
     for flight in results:
         print("----------------")
         print(flight)
- 
