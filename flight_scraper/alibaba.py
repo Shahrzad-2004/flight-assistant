@@ -112,6 +112,9 @@ AIRLINE_LOGOS = {
     "ایران ایرتور": {
         "logo":"airlines/B9.svg"
     },
+    "ایران ایر": {
+        "logo":"airlines/B9.svg"
+    },
     "آتا": {
             "logo":"airlines/I3.svg"
         },
@@ -283,7 +286,8 @@ def search_alibaba(
     with sync_playwright() as p:
 
         browser = p.chromium.launch(
-            headless=False
+            headless=False,
+            executable_path=r"C:\Program Files\Google\Chrome\Application\chrome.exe"
         )
 
         page = browser.new_page()
@@ -327,6 +331,8 @@ def search_alibaba(
             )
 
             flights = []
+            print("تعداد قیمت‌های پیدا شده:", price_boxes.count())
+            print("تعداد span ها:", page.locator("span").count())
 
             for i in range(price_boxes.count()):
 

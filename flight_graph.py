@@ -300,14 +300,14 @@ def search_flights(state: FlightState) -> FlightState:
     )
  
     preferred_cabin = state.get("cabin_class")
-    keyword = CABIN_CLASS_KEYWORDS.get(preferred_cabin)
- 
-    if keyword:
-        flights = [
-            flight
-            for flight in flights
-            if keyword in (flight.get("cabin_class") or "")
-        ]
+    if preferred_cabin and preferred_cabin != "unspecified":
+            keyword = CABIN_CLASS_KEYWORDS.get(preferred_cabin)
+            if keyword:
+                flights = [
+                    flight
+                    for flight in flights
+                    if keyword in (flight.get("cabin_class") or "")
+                ]
  
     max_price = state.get("max_price_toman")
     if max_price:
