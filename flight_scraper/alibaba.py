@@ -110,10 +110,10 @@ AIRLINE_LOGOS = {
         "logo":"airlines/ZG.svg"
     },
     "ایران ایرتور": {
-        "logo":"airlines/IT.svg"
+        "logo":"airlines/B9.svg"
     },
     "آتا": {
-            "logo":"airlines/AT.svg"
+            "logo":"airlines/I3.svg"
         },
     "معراج": {
             "logo":"airlines/MJ.svg"
@@ -122,22 +122,40 @@ AIRLINE_LOGOS = {
             "logo":"airlines/VR.png"
         },
     "ماهان": {
-            "logo":"airlines/W5.png"
+            "logo":"airlines/W5.svg"
         },
     "سپهران": {
-            "logo":"airlines/ُSR.png"
+            "logo":"airlines/SR.svg"
         },
     "کارون": {
-            "logo":"airlines/ُNV.png"
+            "logo":"airlines/NV.svg"
         },
     "جی اسکای": {
-            "logo":"airlines/ُJS.png"
+            "logo":"airlines/JS.png"
         },
     "تابان": {
-            "logo":"airlines/ُHH.png"
+            "logo":"airlines/HH.svg"
         },
     "آساجت": {
-            "logo":"airlines/ُSJ.png"
+            "logo":"airlines/SJ.png"
+        },
+    "اطلس ایر": {
+            "logo":"airlines/AT.svg"
+        },
+    "فلای کیش": {
+            "logo":"airlines/FK.svg"
+        },
+    "کاسپین": {
+            "logo":"airlines/IV.svg"
+        },
+    "لاد ایرویز": {
+            "logo":"airlines/LD.svg"
+        },
+    "نسیم ایر": {
+            "logo":"airlines/NA.svg"
+        },
+    "چابهار": {
+            "logo":"airlines/RI.svg"
         },
 }
 def select_departure_date(page, date_str):

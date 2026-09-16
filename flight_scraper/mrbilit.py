@@ -57,17 +57,60 @@ SORT_TAB_LABELS = {
 }
  
 AIRLINE_LOGOS = {
-    "زاگرس": {"logo": "airlines/ZG.svg"},
-    "ایران ایرتور": {"logo": "airlines/IT.svg"},
-    "آتا": {"logo": "airlines/AT.svg"},
-    "معراج": {"logo": "airlines/MJ.svg"},
-    "وارش": {"logo": "airlines/VR.png"},
-    "ماهان": {"logo": "airlines/W5.png"},
-    "سپهران": {"logo": "airlines/SR.png"},
-    "کارون": {"logo": "airlines/NV.png"},
-    "جی اسکای": {"logo": "airlines/JS.png"},
-    "تابان": {"logo": "airlines/HH.png"},
-    "آسمان": {"logo": "airlines/Asemanairlinelogos.svg"},
+    "زاگرس": {
+        "logo":"airlines/ZG.svg"
+    },
+    "ایران ایرتور": {
+        "logo":"airlines/B9.svg"
+    },
+    "ایران ایر": {
+        "logo":"airlines/B9.svg"
+    },
+    "آتا": {
+            "logo":"airlines/I3.svg"
+        },
+    "معراج": {
+            "logo":"airlines/MJ.svg"
+        },
+    "وارش": {
+            "logo":"airlines/VR.png"
+        },
+    "ماهان": {
+            "logo":"airlines/W5.svg"
+        },
+    "سپهران ایر": {
+            "logo":"airlines/SR.svg"
+        },
+    "کارون": {
+            "logo":"airlines/NV.svg"
+        },
+    "جی اسکای": {
+            "logo":"airlines/JS.png"
+        },
+    "تابان": {
+            "logo":"airlines/HH.svg"
+        },
+    "آساجت": {
+            "logo":"airlines/SJ.png"
+        },
+    "اطلس ایر": {
+            "logo":"airlines/AT.svg"
+        },
+    "فلای کیش": {
+            "logo":"airlines/FK.svg"
+        },
+    "کاسپین": {
+            "logo":"airlines/IV.svg"
+        },
+    "لاد": {
+            "logo":"airlines/LD.svg"
+        },
+    "نسیم ایر": {
+            "logo":"airlines/NA.svg"
+        },
+    "چابهار": {
+            "logo":"airlines/RI.svg"
+        },
 }
  
  
