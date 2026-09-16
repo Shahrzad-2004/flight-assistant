@@ -1343,6 +1343,11 @@ font-size:16px;
 color:#444;
 
 }
+.flight-source{
+font-size:14px;
+
+color:#444;
+}
 
 .plane-icon{
 

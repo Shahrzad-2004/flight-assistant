@@ -275,7 +275,8 @@ def search_mrbilit(
     city_timeout=25000,
 ):
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=False,
+                                    executable_path=r"C:\Program Files\Google\Chrome\Application\chrome.exe")
         page = browser.new_page()
         page.set_default_timeout(city_timeout)
  

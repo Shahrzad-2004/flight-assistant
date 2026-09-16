@@ -438,9 +438,9 @@ src="{ airline_logo_data }" >
 ظرفیت: {flight["remaining_seats"]}
 </div>
 
-<a href="{flight.get("source_url", "#")}" target="_blank" class="select-flight">
+<button onclick="window.open('{flight.get("source_url", "#")}', '_blank')" class="select-flight">
 انتخاب پرواز
-</a>
+</button>
 
 <span class="flight-source">
     منبع: {flight.get("source", "نامشخص")}
