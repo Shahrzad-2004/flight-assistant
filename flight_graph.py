@@ -2,8 +2,9 @@ from typing import TypedDict, Optional, Literal
 from langgraph.graph import StateGraph, START, END
 from flight_scraper.scraper_manager import search_all_flights
 from flight_scraper.alibaba import IATA_CODES
+from flight_scraper.alibaba_international import INTERNATIONAL_IATA_CODES
  
-SUPPORTED_CITIES = set(IATA_CODES.keys())
+SUPPORTED_CITIES = set(IATA_CODES.keys()) | set(INTERNATIONAL_IATA_CODES.keys())
  
  
 class FlightState(TypedDict, total=False):
