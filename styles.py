@@ -704,6 +704,8 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         --soft-blue-border:#a9cdf0;
         --soft-blue-bg:#eaf3fc;
         --soft-user-color:#a8b6e8;
+        --accent:#488091;
+        --accent-hover:#3d6d7b;
     }}
 
     {hide_sidebar_rule}
@@ -747,18 +749,18 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
 
         border-radius:50% !important;
 
-        background:var(--soft-blue) !important;
+        background:var(--accent) !important;
         color:white !important;
 
         font-size:20px !important;
         line-height:1 !important;
 
         border:none !important;
-        box-shadow:0 6px 18px rgba(111,163,214,.45) !important;
+        box-shadow:0 6px 18px rgba(72,128,145,.45) !important;
     }}
 
     .st-key-sidebar_toggle_button button:hover{{
-        background:var(--soft-blue-hover) !important;
+        background:var(--accent-hover) !important;
         transform:translateY(-2px);
     }}
 
@@ -783,11 +785,11 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
 
     /* دکمه گفتگوی جدید */
     .st-key-new_chat_button button{{
-        background:var(--soft-blue) !important;
+        background:var(--accent) !important;
     }}
 
     .st-key-new_chat_button button:hover{{
-        background:var(--soft-blue-hover) !important;
+        background:var(--accent-hover) !important;
     }}
 
     /* عنوان بخش گفتگوهای اخیر */
@@ -818,11 +820,81 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         flex-direction:row-reverse !important;
     }}
 
-    /* دکمه‌ی هر گفتگو - رفع مشکل خارج زدن متن از کادر */
+    /* کارت واحد هر گفتگو: نام + سه‌نقطه (و در صورت باز بودن،
+       منوی زیرش) همه داخل یک قاب یکپارچه‌اند. حاشیه و پس‌زمینه
+       فقط روی خودِ این کانتینر است، نه روی دکمه‌های داخلش */
+    [class*="st-key-chat_card_"]{{
+        background:rgba(255,255,255,.6) !important;
+        border:1px solid var(--accent) !important;
+        border-radius:14px !important;
+        margin-bottom:8px !important;
+        padding:4px 8px !important;
+        overflow:hidden !important;
+        transition:background .18s ease, border-color .18s ease !important;
+    }}
+
+    [class*="st-key-chat_card_"]:hover{{
+        background:rgba(72,128,145,.10) !important;
+        border-color:var(--accent-hover) !important;
+    }}
+    [class*="st-key-delete_option_"] button{{
+        background:#ef4444 !important;
+        color:white !important;
+        border-radius:10px !important;
+        min-height:35px !important;
+    }}
+
+    [class*="st-key-delete_option_"] button:hover{{
+        background:#dc2626 !important;
+    }}
+    /* حذف فلش کنار دکمه popover */
+    [data-testid="stPopover"] button svg {{
+        display:none !important;
+    }}
+
+    /* ظاهر خود سه نقطه */
+    /* تنظیم جای سه نقطه */
+    [data-testid="stPopover"] button {{
+
+        background:transparent !important;
+        color:#6b7280 !important;
+
+        border:none !important;
+        box-shadow:none !important;
+
+        width:32px !important;
+        min-width:32px !important;
+        height:32px !important;
+
+        padding:0 !important;
+
+        font-size:18px !important;
+
+        transform:translateX(-10px) !important;
+    }}
+
+
+    /* اصلاح hover سه نقطه */
+    [data-testid="stPopover"] button:hover {{
+
+        background:rgba(72,128,145,.15) !important;
+
+        border-radius:10px !important;
+
+        transform:translateX(-10px) !important;
+    }}
+
+    /* حذف سایه‌ی پیش‌فرض همه‌ی دکمه‌های داخل کارت گفتگو، تا هیچ
+       دکمه‌ای قاب/برجستگی جدا از خودِ کارت نداشته باشد */
+    [class*="st-key-chat_card_"] [data-testid="stButton"] button{{
+        box-shadow:none !important;
+    }}
+
+    /* دکمه‌ی نام گفتگو - بدون حاشیه یا پس‌زمینه‌ی جدا */
     [class*="st-key-session_"] button{{
-        background:rgba(255,255,255,.55) !important;
+        background:transparent !important;
         color:#1f2937 !important;
-        border:1px solid rgba(169,205,240,.7) !important;
+        border:none !important;
 
         overflow:hidden !important;
         text-overflow:ellipsis !important;
@@ -840,23 +912,112 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         max-width:100% !important;
     }}
 
-    [class*="st-key-session_"] button:hover{{
-        background:var(--soft-blue-bg) !important;
-        border-color:var(--soft-blue) !important;
+    /* دکمه‌ی سه‌نقطه - فقط یک آیکون ساده، دقیقاً داخل همان کارت */
+    [class*="st-key-menu_toggle_"] button{{
+        background:transparent !important;
+        border:none !important;
+        color:#6b7280 !important;
+        min-width:26px !important;
+        width:26px !important;
+        padding:0 !important;
+        font-size:18px !important;
+        font-weight:700 !important;
+        line-height:1 !important;
     }}
 
-    /* دکمه حذف تکی هر گفتگو */
-    [class*="st-key-delete_"] button{{
-        background:rgba(255,255,255,.55) !important;
+    [class*="st-key-menu_toggle_"] button p{{
+        color:#6b7280 !important;
+    }}
+
+    [class*="st-key-menu_toggle_"] button:hover{{
+        color:#1f2937 !important;
+        background:rgba(72,128,145,.15) !important;
+        border-radius:8px !important;
+    }}
+
+    /* دکمه‌های «بله / انصراف» در تأیید حذف (تکی یا گروهی) -
+       جمع‌وجور و شکیل به‌جای بلوک‌های بزرگ قبلی */
+    [class*="st-key-confirm_delete_"] button,
+    [class*="st-key-cancel_delete_"] button{{
+        min-height:30px !important;
+        padding:4px 6px !important;
+        font-size:12.5px !important;
+        border-radius:9px !important;
+    }}
+
+    [class*="st-key-confirm_delete_"] button{{
+        background:#ef4444 !important;
+        color:white !important;
+        border:none !important;
+    }}
+
+    [class*="st-key-confirm_delete_"] button:hover{{
+        background:#dc2626 !important;
+    }}
+
+    [class*="st-key-cancel_delete_"] button{{
+        background:rgba(255,255,255,.8) !important;
+        color:#374151 !important;
+        border:1px solid rgba(209,213,219,.9) !important;
+    }}
+
+    [class*="st-key-cancel_delete_"] button:hover{{
+        background:rgba(243,244,246,.9) !important;
+    }}
+
+    /* دکمه‌ی «حذف همه گفتگوها» بالای فهرست - کم‌رنگ‌تر تا زیاد
+       چشم‌گیر نباشد، ولی همیشه در دسترس بماند */
+    .st-key-delete_all_trigger button{{
+        background:transparent !important;
         color:#ef4444 !important;
-        border:1px solid rgba(239,68,68,.25) !important;
-        min-width:36px !important;
-        padding:4px !important;
+        border:1px dashed rgba(239,68,68,.4) !important;
+        font-size:12.5px !important;
+        min-height:32px !important;
+        margin-bottom:10px !important;
     }}
 
-    [class*="st-key-delete_"] button:hover{{
-        background:rgba(239,68,68,.12) !important;
-        border-color:rgba(239,68,68,.5) !important;
+    .st-key-delete_all_trigger button p{{
+        color:#ef4444 !important;
+        font-weight:600 !important;
+    }}
+
+    .st-key-delete_all_trigger button:hover{{
+        background:rgba(239,68,68,.08) !important;
+        border-style:solid !important;
+    }}
+
+    /* پنجره‌ی تأیید حذف (st.dialog) - همیشه خارج از سایدبار و
+       روی صفحه‌ی اصلی باز می‌شود؛ ظاهر شیشه‌ای با رنگ برند
+       (همان تیل هواپیماهای پس‌زمینه) و حرفه‌ای */
+    [data-testid="stDialog"],
+    div[role="dialog"]{{
+        direction:rtl !important;
+        font-family:'Vazirmatn', sans-serif !important;
+
+        background:linear-gradient(
+            135deg,
+            rgba(72,128,145,.92),
+            rgba(43,84,97,.95)
+        ) !important;
+        backdrop-filter:blur(24px) saturate(160%) !important;
+        -webkit-backdrop-filter:blur(24px) saturate(160%) !important;
+        border:1px solid rgba(255,255,255,.22) !important;
+        border-radius:22px !important;
+        box-shadow:0 24px 70px rgba(10,30,38,.45) !important;
+    }}
+
+    /* متن پیش‌فرض داخل دیالوگ (عنوان و...) سفید و خوانا؛ رنگ
+       اختصاصی دکمه‌های بله/خیر پایین‌تر همچنان برتری دارد */
+    [data-testid="stDialog"] *,
+    div[role="dialog"] *{{
+        color:#ffffff !important;
+    }}
+
+    [data-testid="stDialog"] [data-testid="stHorizontalBlock"],
+    div[role="dialog"] [data-testid="stHorizontalBlock"]{{
+        direction:rtl !important;
+        flex-direction:row-reverse !important;
+        gap:10px !important;
     }}
 
     /* آواتار پیام دستیار (ربات) - آبی ملایم به‌جای نارنجی */
@@ -868,6 +1029,38 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
     [data-testid="stChatMessageAvatarUser"]{{
         background-color:var(--soft-user-color) !important;
         color:#1f2a4d !important;
+    }}
+    /* حذف فلش پیش فرض Streamlit Popover */
+    [data-testid="stPopover"] button > div > svg,
+    [data-testid="stPopover"] button svg,
+    [data-testid="stPopover"] button [data-testid="stIconMaterial"] {{
+        display:none !important;
+    }}
+
+
+    /* تنظیم دوباره دکمه سه نقطه */
+    [data-testid="stPopover"] button {{
+
+        background:transparent !important;
+        color:#6b7280 !important;
+
+        border:none !important;
+        box-shadow:none !important;
+
+        width:28px !important;
+        min-width:28px !important;
+        height:28px !important;
+
+        padding:0 !important;
+
+        font-size:18px !important;
+    }}
+
+
+
+    /* حذف فضای خالی اطراف آیکون */
+    [data-testid="stPopover"] button div {{
+        gap:0 !important;
     }}
 
     </style>
@@ -1340,13 +1533,24 @@ margin:20px 0;
 
 font-size:16px;
 
-color:#444;
+color:#444 !important;
+
+opacity:1 !important;
 
 }
-.flight-source{
-font-size:14px;
 
-color:#444;
+.flight-source{
+
+font-size:13px;
+
+color:#444 !important;
+
+opacity:1 !important;
+
+display:block;
+
+margin-top:6px;
+
 }
 
 .plane-icon{
@@ -1397,7 +1601,7 @@ align-items:center;
     gap:12px;
     font-size:22px;
     font-weight:700;
-    color:#1d3c9b;
+    color:#488091;
 }
 
 .airline-logo {
@@ -1411,9 +1615,9 @@ align-items:center;
 
 .flight-tags span{
 
-    background:#e8f0ff;
+    background:rgba(72,128,145,0.15);
 
-    color:#3158db;
+    color:#488091;
 
     padding:7px 18px;
 
@@ -1459,7 +1663,7 @@ text-align:center;
 
     font-weight:700;
 
-    color:#1d3c9b;
+    color:#488091;
 
 }
 
@@ -1478,7 +1682,7 @@ text-align:center;
 
     font-weight:700;
 
-    color:#3158db;
+    color:#488091;
 
 }
 
@@ -1514,7 +1718,7 @@ border-top:2px dashed #ccc;
 
     justify-content:space-around;
 
-    background:#f3f6ff;
+    background:#6fa3d6;
 
     color:#444;
 
@@ -1562,16 +1766,46 @@ font-size:27px;
 
 font-weight:bold;
 
-color:#2455d6;
+color:#488091;
 
 margin:15px 0;
 
 }
 
 
+/* دکمه «انتخاب پرواز» - این کلاسیه که واقعاً در HTML رندر می‌شود */
+.select-flight{
+
+background:#488091 !important;
+
+color:white !important;
+
+border:none;
+
+padding:13px 35px;
+
+border-radius:14px;
+
+display:inline-block;
+
+text-decoration:none !important;
+
+font-weight:700;
+
+transition:background .2s ease;
+}
+
+.select-flight:hover{
+
+background:#3d6d7b !important;
+}
+
+/* این سلکتور در نسخه‌ی فعلی HTML استفاده نمی‌شود (چون دکمه یک
+   تگ <a class="select-flight"> است نه <button>)؛ برای سازگاری با
+   نسخه‌های احتمالی دیگر پروژه نگه داشته شده است */
 [class*="st-key-select_flight_"] button {
 
- background:#3158db !important;
+ background:#488091 !important;
 
 color:white !important;
 

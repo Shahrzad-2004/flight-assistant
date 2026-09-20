@@ -5,6 +5,7 @@ from pathlib import Path
 import streamlit as st
 from datetime import datetime
 import jdatetime
+import streamlit.components.v1 as components
 from chat_database import create_tables, save_message,list_sessions
 from authentication import handle_google_callback, get_google_auth_url
 from user_database import create_users_table,get_user_by_id
@@ -37,6 +38,8 @@ from ui_handlers import (
     start_new_conversation,
     switch_session,
     remove_session,
+    delete_session_dialog,
+    delete_all_sessions_dialog,
     toggle_sidebar,
     logout_user,      
 
@@ -222,29 +225,48 @@ with st.sidebar:
             unsafe_allow_html=True
         )
 
+    else:
+
+        # دکمه‌ی حذف یکجای همه‌ی گفتگوها - با کلیک، پنجره‌ی
+        # شناور تأیید (st.dialog) باز می‌شود
+        if st.button(
+            "🗑️ حذف همه گفتگوها",
+            key="delete_all_trigger",
+            use_container_width=True
+        ):
+            delete_all_sessions_dialog(
+                [s["session_id"] for s in sessions]
+            )
+
     for session in sessions:
 
-        row_label, row_delete = st.columns([5, 1])
+        session_id = session["session_id"]
+        is_active = session_id == st.session_state.session_id
 
-        is_active = session["session_id"] == st.session_state.session_id
+        # کل کارت هر گفتگو (نام + سه‌نقطه) داخل یک کانتینر واحد
+        with st.container(key=f"chat_card_{session_id}"):
 
-        with row_label:
-            st.button(
-                ("🧳 " if is_active else "💬 ") + session["title"],
-                key=f"session_{session['session_id']}",
-                use_container_width=True,
-                on_click=switch_session,
-                args=(session["session_id"],)
-            )
+            row_label, row_menu = st.columns([5, 1])
 
-        with row_delete:
-            st.button(
-                "🗑️",
-                key=f"delete_{session['session_id']}",
-                use_container_width=True,
-                on_click=remove_session,
-                args=(session["session_id"],)
-            )
+            with row_label:
+                st.button(
+                    ("🧳 " if is_active else "💬 ") + session["title"],
+                    key=f"session_{session_id}",
+                    use_container_width=True,
+                    on_click=switch_session,
+                    args=(session_id,)
+                )
+
+            with row_menu:
+
+                with st.popover("⋮"):
+                    if st.button(
+                        "🗑 حذف",
+                        key=f"delete_option_{session_id}",
+                        use_container_width=True
+                    ):
+                        remove_session(session_id)
+
     # باکس کاربر: کل باکس کلیک‌پذیره (details/summary) و منوی خروج را باز می‌کند
     if "user" in st.session_state:
 
@@ -438,9 +460,9 @@ src="{ airline_logo_data }" >
 ظرفیت: {flight["remaining_seats"]}
 </div>
 
-<button onclick="window.open('{flight.get("source_url", "#")}', '_blank')" class="select-flight">
+<a href="{flight.get("source_url", "#")}" target="_blank" class="select-flight">
 انتخاب پرواز
-</button>
+</a>
 
 <span class="flight-source">
     منبع: {flight.get("source", "نامشخص")}
