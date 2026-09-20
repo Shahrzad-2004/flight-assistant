@@ -399,6 +399,67 @@ def remove_session(session_id: str):
         start_new_conversation()
 
 
+@st.dialog("آیا می‌خواهید این چت حذف شود؟")
+def delete_session_dialog(session_id: str):
+    """پنجره‌ی تأیید حذف یک گفتگو - خارج از سایدبار و روی صفحه‌ی
+    اصلی باز می‌شود (st.dialog)، با دو دکمه‌ی هم‌اندازه‌ی بله/خیر."""
+
+    yes_col, no_col = st.columns(2)
+
+    with yes_col:
+        if st.button(
+            "بله",
+            key=f"confirm_delete_{session_id}",
+            use_container_width=True
+        ):
+            remove_session(session_id)
+            st.rerun()
+
+    with no_col:
+        if st.button(
+            "خیر",
+            key=f"cancel_delete_{session_id}",
+            use_container_width=True
+        ):
+            st.rerun()
+
+
+def remove_all_sessions(session_ids):
+    """حذف یکجای تمام گفتگوهای ذخیره‌شده (پس از تأیید کاربر)."""
+    for session_id in session_ids:
+        delete_session(session_id, user_id=current_user_id())
+
+    start_new_conversation()
+
+
+# ---------------------------------------------------------------
+# پنجره‌های شناور (Modal) تأیید حذف - با st.dialog
+# فقط دو دکمه نشان داده می‌شود، بدون متن سؤالِ اضافه
+# ---------------------------------------------------------------
+
+@st.dialog("حذف همه گفتگوها")
+def delete_all_sessions_dialog(session_ids):
+
+    confirm_col, cancel_col = st.columns(2)
+
+    with confirm_col:
+        if st.button(
+            "بله، همه حذف شوند",
+            key="confirm_delete_all",
+            use_container_width=True
+        ):
+            remove_all_sessions(session_ids)
+            st.rerun()
+
+    with cancel_col:
+        if st.button(
+            "انصراف",
+            key="cancel_delete_all",
+            use_container_width=True
+        ):
+            st.rerun()
+
+
 def logout_user():
     """خروج کاربر از حساب: پاک کردن session و کوکی."""
     st.session_state.pop("user", None)

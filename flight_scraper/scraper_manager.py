@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
  
 from .alibaba import search_alibaba, IATA_CODES as DOMESTIC_IATA_CODES
 from .mrbilit import search_mrbilit
+from .mrbilit_international import search_mrbilit_international
 from .alibaba_international import (
     search_alibaba_international,
     INTERNATIONAL_IATA_CODES,
@@ -41,6 +42,16 @@ def search_all_flights(
         tasks = [
             executor.submit(
                 search_alibaba_international,
+                origin,
+                destination,
+                departure_date,
+                adults,
+                children,
+                infants,
+                sort_by=sort_by
+            ),
+            executor.submit(
+                search_mrbilit_international,
                 origin,
                 destination,
                 departure_date,
