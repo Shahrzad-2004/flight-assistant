@@ -64,6 +64,19 @@ INTERNATIONAL_IATA_CODES = {
     "گوانگژو": "CAN",
 }
 
+# شهرهای ایرانی‌ای که واقعاً می‌توانند «مبدأ» یک پرواز خارجی باشند. این زیرمجموعه‌ی
+# صریح از INTERNATIONAL_IATA_CODES جداست چون آن دیکشنری مبدأ و مقصد را با هم قاطی
+# دارد؛ بدون این ست، هر شهر ایرانیِ داخلی (مثلاً همدان) که فقط در IATA_CODES داخلی
+# است هم به‌اشتباه به‌عنوان مبدأ خارجی معتبر پذیرفته می‌شود.
+INTERNATIONAL_ORIGIN_CITIES = {
+    "تهران",
+    "مشهد",
+    "شیراز",
+    "اصفهان",
+    "تبریز",
+    "کیش",
+}
+
 JALALI_MONTHS = {
     1: "فروردین",
     2: "اردیبهشت",
@@ -102,7 +115,7 @@ AIRLINE_LOGOS = {
             "logo":"airlines/MJ.svg"
         },
     "Varesh": {
-            "logo":"airlines/VR.png"
+            "logo":"airlines/VR.svg"
         },
     "ماهان": {
             "logo":"airlines/W5.svg"
@@ -145,6 +158,9 @@ AIRLINE_LOGOS = {
         },
     "Qeshm Air": {
             "logo":"airlines/QB.svg"
+        },
+    "Soroush Air": {
+            "logo":"airlines/SHR.svg"
         },
 }
 # ساختار متن هر کارت پرواز (یک div برگ بدون فرزند div) روی صفحه‌ی خارجی،

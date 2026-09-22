@@ -73,7 +73,7 @@ AIRLINE_LOGOS = {
             "logo":"airlines/MJ.svg"
         },
     "وارش": {
-            "logo":"airlines/VR.png"
+            "logo":"airlines/VR.svg"
         },
     "ماهان": {
             "logo":"airlines/W5.svg"
@@ -116,6 +116,9 @@ AIRLINE_LOGOS = {
         },
     "قشم ایر": {
             "logo":"airlines/QB.svg"
+        },
+    "سروش ایر": {
+            "logo":"airlines/SHR.svg"
         },
 }
  
