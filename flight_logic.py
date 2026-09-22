@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
  
 import streamlit as st
+from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
  
@@ -24,11 +25,11 @@ def create_flight_extractor():
         )
  
     llm = ChatOpenAI(
-    model="qwen3.8-max",
-    api_key=api_key,
-    base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-    temperature=0
-)
+        model="qwen3.7-plus",
+        api_key=api_key,
+        base_url="https://api.avalai.ir/v1",
+        temperature=0
+    )
     #ساختار پاسخ ال ال ام
     structured_llm = llm.with_structured_output(
     FlightRequest

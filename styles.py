@@ -838,14 +838,41 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         border-color:var(--accent-hover) !important;
     }}
     [class*="st-key-delete_option_"] button{{
-        background:#ef4444 !important;
-        color:white !important;
+        background:#fcf2f3 !important;
+        color:#ef4444 !important;
+        border:1px solid #ef4444 !important;
         border-radius:10px !important;
         min-height:35px !important;
+        box-shadow:none !important;
+    }}
+
+    [class*="st-key-delete_option_"] button p{{
+        color:#ef4444 !important;
     }}
 
     [class*="st-key-delete_option_"] button:hover{{
-        background:#dc2626 !important;
+        background:#fbe6e8 !important;
+        border-color:#ef4444 !important;
+    }}
+
+    /* حذف کامل کادر آبی (گرادیانت تیل) دور دکمه حذف - فقط خود دکمه
+       می‌ماند. اندازه و جای پاپ‌آپ (padding و ...) دست‌نخورده است */
+    div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]),
+    div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]) > div,
+    [data-testid="stPopoverBody"]:has([class*="st-key-delete_option_"]),
+    div[role="dialog"]:has([class*="st-key-delete_option_"]){{
+        background:transparent !important;
+        border:none !important;
+        box-shadow:none !important;
+        backdrop-filter:none !important;
+        -webkit-backdrop-filter:none !important;
+
+        /* کوتاه‌تر شدن عرض (قبلاً حدود ۳۲۰px بود). لبه‌ی چپ پاپ‌آپ
+           همان قبلی می‌ماند و فقط از سمت راست کوتاه می‌شود */
+        box-sizing:border-box !important;
+        min-width:0 !important;
+        width:140px !important;
+        max-width:140px !important;
     }}
     /* حذف فلش کنار دکمه popover */
     [data-testid="stPopover"] button svg {{
@@ -903,9 +930,24 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
 
         text-align:right !important;
         direction:rtl !important;
+
+        /* نزدیک‌تر شدن متن به سه‌نقطه (پیش‌فرض حدود ۱۲px بود) */
+        padding-right:4px !important;
+    }}
+
+    [class*="st-key-session_"] button > div,
+    [class*="st-key-session_"] button [data-testid="stMarkdownContainer"]{{
+        display:flex !important;
+        justify-content:flex-start !important;
+        width:100% !important;
+        text-align:right !important;
+        direction:rtl !important;
     }}
 
     [class*="st-key-session_"] button p{{
+        display:block !important;
+        width:100% !important;
+        text-align:right !important;
         overflow:hidden !important;
         text-overflow:ellipsis !important;
         white-space:nowrap !important;
@@ -965,32 +1007,11 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         background:rgba(243,244,246,.9) !important;
     }}
 
-    /* دکمه‌ی «حذف همه گفتگوها» بالای فهرست - کم‌رنگ‌تر تا زیاد
-       چشم‌گیر نباشد، ولی همیشه در دسترس بماند */
-    .st-key-delete_all_trigger button{{
-        background:transparent !important;
-        color:#ef4444 !important;
-        border:1px dashed rgba(239,68,68,.4) !important;
-        font-size:12.5px !important;
-        min-height:32px !important;
-        margin-bottom:10px !important;
-    }}
-
-    .st-key-delete_all_trigger button p{{
-        color:#ef4444 !important;
-        font-weight:600 !important;
-    }}
-
-    .st-key-delete_all_trigger button:hover{{
-        background:rgba(239,68,68,.08) !important;
-        border-style:solid !important;
-    }}
-
     /* پنجره‌ی تأیید حذف (st.dialog) - همیشه خارج از سایدبار و
        روی صفحه‌ی اصلی باز می‌شود؛ ظاهر شیشه‌ای با رنگ برند
        (همان تیل هواپیماهای پس‌زمینه) و حرفه‌ای */
     [data-testid="stDialog"],
-    div[role="dialog"]{{
+    div[role="dialog"]:not(:has([class*="st-key-delete_option_"])){{
         direction:rtl !important;
         font-family:'Vazirmatn', sans-serif !important;
 
@@ -1009,12 +1030,12 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
     /* متن پیش‌فرض داخل دیالوگ (عنوان و...) سفید و خوانا؛ رنگ
        اختصاصی دکمه‌های بله/خیر پایین‌تر همچنان برتری دارد */
     [data-testid="stDialog"] *,
-    div[role="dialog"] *{{
+    div[role="dialog"]:not(:has([class*="st-key-delete_option_"])) *{{
         color:#ffffff !important;
     }}
 
     [data-testid="stDialog"] [data-testid="stHorizontalBlock"],
-    div[role="dialog"] [data-testid="stHorizontalBlock"]{{
+    div[role="dialog"]:not(:has([class*="st-key-delete_option_"])) [data-testid="stHorizontalBlock"]{{
         direction:rtl !important;
         flex-direction:row-reverse !important;
         gap:10px !important;
@@ -1054,6 +1075,8 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         padding:0 !important;
 
         font-size:18px !important;
+
+        position:relative !important;
     }}
 
 
@@ -1061,6 +1084,31 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
     /* حذف فضای خالی اطراف آیکون */
     [data-testid="stPopover"] button div {{
         gap:0 !important;
+    }}
+
+    /* حرف «⋮» مخفی می‌شود (فونت آن را به لبه‌ی کادر می‌چسباند) و
+       به‌جایش سه نقطه با CSS دقیقاً وسط کادر هاور رسم می‌شود */
+    [data-testid="stPopover"] button > *{{
+        visibility:hidden !important;
+    }}
+
+    [data-testid="stPopover"] button::after{{
+        content:"";
+        position:absolute;
+        top:50%;
+        left:50%;
+        width:2.5px;
+        height:2.5px;
+        margin:-1.25px 0 0 -1.25px;
+        border-radius:50%;
+        background:#6b7280;
+        box-shadow:0 -5px 0 #6b7280, 0 5px 0 #6b7280;
+        pointer-events:none;
+    }}
+
+    [data-testid="stPopover"] button:hover::after{{
+        background:#1f2937;
+        box-shadow:0 -5px 0 #1f2937, 0 5px 0 #1f2937;
     }}
 
     </style>
