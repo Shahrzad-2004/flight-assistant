@@ -68,7 +68,7 @@ AIRLINE_LOGOS = {
             "logo":"airlines/MJ.svg"
         },
     "وارش": {
-            "logo":"airlines/VR.png"
+            "logo":"airlines/VR.svg"
         },
     "ماهان": {
             "logo":"airlines/W5.svg"
@@ -112,6 +112,9 @@ AIRLINE_LOGOS = {
     "قشم ایر": {
             "logo":"airlines/QB.svg"
         },
+    "سروش ایر": {
+            "logo":"airlines/SHR.svg"
+        },
 }
 
 # ⚠️ برچسب تب‌های مرتب‌سازی صفحه‌ی خارجی تأیید نشده؛ فعلاً همان برچسب‌های
@@ -154,10 +157,15 @@ AIRCRAFT_RE = re.compile(r"بوئینگ|ایرباس|ATR|فوکر|Boeing|Airbus|
 CABIN_RE = re.compile(r"پریمیوم\s*اکونومی|اکونومی|بیزینس|فرست")
 NO_RESULTS_RE = re.compile(r"یافت\s*نشد|موردی\s*پیدا\s*نشد|پروازی\s*وجود\s*ندارد")
 
-# خطوطی که «نام ایرلاین» نیستند (برای تشخیص خط ایرلاین)
+# خطوطی که «نام ایرلاین» نیستند (برای تشخیص خط ایرلاین). علاوه بر کلمات
+# مربوط به خود کارت پرواز، عبارات نوار مرتب‌سازی/هدر نتایج هم این‌جا اضافه
+# شده‌اند: اگر به‌خاطر مرزبندی نادرستِ EXTRACT_CARDS_JS متن این نوار به یک
+# کارت (معمولاً اولین کارت صفحه) بچسبد، نباید به‌جای اسم ایرلاین گرفته شود.
 NON_AIRLINE_LINE_RE = re.compile(
     r"سیستمی|چارتری|اکونومی|بیزینس|فرست|تومان|ساعت|دقیقه|توقف|مستقیم|"
-    r"صندلی|بار|KG|کیلو|جزئیات|انتخاب|ویلچر|قوانین|استرداد|بلیط|\d"
+    r"صندلی|بار|KG|کیلو|جزئیات|انتخاب|ویلچر|قوانین|استرداد|بلیط|"
+    r"مرتب‌سازی|مرتب سازی|بر اساس|ارزان‌ترین|زودترین|دیرترین|گران‌ترین|"
+    r"پروازهای موجود|فیلتر|نتیجه|\d"
 )
 
 _DIGIT_TRANSLATION = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
@@ -588,13 +596,33 @@ def parse_card_text(card_text):
     # ممکن است کارت قیمت اصلی و تخفیف‌خورده را با هم داشته باشد؛ کمتر را می‌گیریم
     price_value = min(prices)
 
+    flight_type_index = next(
+        (i for i, l in enumerate(lines) if l in ("سیستمی", "چارتری")), None
+    )
+
     airline = None
-    for line in lines:
-        if not NON_AIRLINE_LINE_RE.search(line) and re.search(
-            r"[A-Za-z\u0600-\u06FF]", line
-        ):
-            airline = line
-            break
+    if flight_type_index is not None:
+        # نام ایرلاین همیشه بلافاصله قبل از خط نوع پرواز (سیستمی/چارتری)
+        # می‌آید؛ این لنگر خیلی مطمئن‌تر از «اولین خط مجاز در کل متن کارت»
+        # است، چون اگر متنِ نامرتبطی (مثل هدر/نوار مرتب‌سازی) به ابتدای
+        # کارت چسبیده باشد، جست‌وجوی سراسری ممکن است همان را به‌جای
+        # ایرلاین بگیرد؛ جست‌وجوی رو به عقب از این لنگر چنین ریسکی ندارد.
+        for line in reversed(lines[:flight_type_index]):
+            if not NON_AIRLINE_LINE_RE.search(line) and re.search(
+                r"[A-Za-z\u0600-\u06FF]", line
+            ):
+                airline = line
+                break
+
+    if airline is None:
+        # Fallback: وقتی «سیستمی/چارتری» پیدا نشد (یا لنگر بی‌نتیجه بود)،
+        # همان روش قبلی (اولین خط مجاز در کل متن) را امتحان کن.
+        for line in lines:
+            if not NON_AIRLINE_LINE_RE.search(line) and re.search(
+                r"[A-Za-z\u0600-\u06FF]", line
+            ):
+                airline = line
+                break
 
     airline_logo = None
     if airline:
@@ -619,7 +647,7 @@ def parse_card_text(card_text):
                 return line
         return None
 
-    flight_type = next((l for l in lines if l in ("سیستمی", "چارتری")), None)
+    flight_type = lines[flight_type_index] if flight_type_index is not None else None
 
     seats_line = first_line_with("صندلی")
     seats_match = re.search(r"\d+", seats_line) if seats_line else None

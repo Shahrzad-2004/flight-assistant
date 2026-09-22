@@ -2,7 +2,10 @@ from typing import TypedDict, Optional, Literal
 from langgraph.graph import StateGraph, START, END
 from flight_scraper.scraper_manager import search_all_flights
 from flight_scraper.alibaba import IATA_CODES
-from flight_scraper.alibaba_international import INTERNATIONAL_IATA_CODES
+from flight_scraper.alibaba_international import (
+    INTERNATIONAL_IATA_CODES,
+    INTERNATIONAL_ORIGIN_CITIES,
+)
  
 SUPPORTED_CITIES = set(IATA_CODES.keys()) | set(INTERNATIONAL_IATA_CODES.keys())
  
@@ -97,6 +100,51 @@ def route_required_fields(state: FlightState) -> str:
  
     return "complete"
  
+def validate_international_route(origin: str, destination: str) -> Optional[str]:
+    """اگر مسیر خارجی معتبر نباشد، پیام خطای مناسب را برمی‌گرداند؛ اگر
+    معتبر باشد (یا اصلاً خارجی نباشد) None برمی‌گرداند.
+
+    این تابع جدا از پشتیبانیِ تک‌تکِ شهرها (SUPPORTED_CITIES) است: هدفش
+    گرفتن ترکیب‌های نامعتبری مثل «همدان به پاریس» (شهر داخلی‌ای که پرواز
+    خارجی ندارد) یا «استانبول به دبی» (خارج به خارج، بدون عبور از ایران)
+    است که هرکدام از دو شهرشان به‌تنهایی در SUPPORTED_CITIES هست."""
+
+    origin_is_hub = origin in INTERNATIONAL_ORIGIN_CITIES
+    destination_is_hub = destination in INTERNATIONAL_ORIGIN_CITIES
+
+    origin_is_domestic = origin in IATA_CODES
+    destination_is_domestic = destination in IATA_CODES
+
+    # مسیر کاملاً داخلی؛ ربطی به این تابع ندارد
+    if origin_is_domestic and destination_is_domestic:
+        return None
+
+    # شهر ایرانیِ داخلی‌ای که جزو مبدأهای خارجی نیست (مثل همدان)
+    if origin_is_domestic and not origin_is_hub:
+        hubs = "، ".join(sorted(INTERNATIONAL_ORIGIN_CITIES))
+        return (
+            f"پرواز خارجی فقط از این شهرها انجام می‌شود: {hubs}. "
+            f"«{origin}» جزو این فهرست نیست."
+        )
+
+    if destination_is_domestic and not destination_is_hub:
+        hubs = "، ".join(sorted(INTERNATIONAL_ORIGIN_CITIES))
+        return (
+            f"پرواز خارجی فقط به‌سمت این شهرها انجام می‌شود: {hubs}. "
+            f"«{destination}» جزو این فهرست نیست."
+        )
+
+    # هیچ‌کدام شهر ایرانیِ مبدأ خارجی نیستند → مسیر خارج به خارج
+    if not origin_is_hub and not destination_is_hub:
+        return (
+            "مسیرهای بین‌المللیِ خارج از ایران (بدون عبور از یکی از "
+            "شهرهای ایرانی) پشتیبانی نمی‌شود. لطفاً مبدأ یا مقصد را یک "
+            "شهر ایرانی انتخاب کنید."
+        )
+
+    return None
+
+
 def validate_cities(state: FlightState) -> dict:
     origin = (state.get("origin") or "").strip()
     destination = (state.get("destination") or "").strip()
@@ -127,6 +175,20 @@ def validate_cities(state: FlightState) -> dict:
             "flights": [],
         }
  
+    if origin and destination:
+        route_error = validate_international_route(origin, destination)
+
+        if route_error:
+            return {
+                **state,
+                "origin": None,
+                "destination": None,
+                "current_step": "invalid_city",
+                "assistant_message": route_error,
+                "ui_type": "chat_input",
+                "flights": [],
+            }
+
     return {
         **state,
         "current_step": "cities_valid",

@@ -32,11 +32,6 @@ class FlightRequest(BaseModel):
         description="تاریخ برگشت به فرمت YYYY-MM-DD"
     )
 
-    trip_type: Optional[Literal["one_way", "round_trip"]] = Field(
-        default=None,
-        description="نوع سفر: یک‌ طرفه یا رفت‌ و برگشت"
-    )
-
     adults: Optional[int] = Field(
         default=None,
         ge=1,
@@ -86,23 +81,6 @@ class FlightRequest(BaseModel):
     max_price_toman: Optional[int] = Field(
         default=None,
         description="حداکثر بودجه کاربر به تومان"
-    )
-
-    preferred_airline: Optional[str] = Field(
-        default=None,
-        description="شرکت هواپیمایی موردنظر کاربر"
-    )
-
-    preferred_departure_time: Optional[
-        Literal["morning", "afternoon", "evening", "night"]
-    ] = Field(
-        default=None,
-        description="زمان ترجیحی حرکت"
-    )
-
-    direct_only: Optional[bool] = Field(
-        default=None,
-        description="آیا کاربر فقط پرواز مستقیم می‌خواهد؟"
     )
 
     sort_by: Optional[
