@@ -223,6 +223,7 @@ secrets.toml
 
 # Local database
 flight_assistant.db
+users.db
 
 # Python cache
 __pycache__/

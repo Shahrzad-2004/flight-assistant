@@ -39,7 +39,6 @@ from ui_handlers import (
     switch_session,
     remove_session,
     delete_session_dialog,
-    delete_all_sessions_dialog,
     toggle_sidebar,
     logout_user,      
 
@@ -225,18 +224,6 @@ with st.sidebar:
             unsafe_allow_html=True
         )
 
-    else:
-
-        # دکمه‌ی حذف یکجای همه‌ی گفتگوها - با کلیک، پنجره‌ی
-        # شناور تأیید (st.dialog) باز می‌شود
-        if st.button(
-            "🗑️ حذف همه گفتگوها",
-            key="delete_all_trigger",
-            use_container_width=True
-        ):
-            delete_all_sessions_dialog(
-                [s["session_id"] for s in sessions]
-            )
 
     for session in sessions:
 
@@ -261,7 +248,7 @@ with st.sidebar:
 
                 with st.popover("⋮"):
                     if st.button(
-                        "🗑 حذف",
+                        " حذف",
                         key=f"delete_option_{session_id}",
                         use_container_width=True
                     ):

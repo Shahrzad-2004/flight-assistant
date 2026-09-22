@@ -51,6 +51,62 @@ JALALI_MONTHS = {
     11: "بهمن",
     12: "اسفند",
 }
+AIRLINE_LOGOS = {
+    "زاگرس": {
+        "logo":"airlines/ZG.svg"
+    },
+    "ایران ایرتور": {
+        "logo":"airlines/B9.svg"
+    },
+    "ایران ایر": {
+        "logo":"airlines/B9.svg"
+    },
+    "آتا": {
+            "logo":"airlines/I3.svg"
+        },
+    "معراج": {
+            "logo":"airlines/MJ.svg"
+        },
+    "وارش": {
+            "logo":"airlines/VR.png"
+        },
+    "ماهان": {
+            "logo":"airlines/W5.svg"
+        },
+    "سپهران ایر": {
+            "logo":"airlines/SR.svg"
+        },
+    "کارون": {
+            "logo":"airlines/NV.svg"
+        },
+    "جی اسکای": {
+            "logo":"airlines/JS.png"
+        },
+    "تابان": {
+            "logo":"airlines/HH.svg"
+        },
+    "آساجت": {
+            "logo":"airlines/SJ.png"
+        },
+    "اطلس ایر": {
+            "logo":"airlines/AT.svg"
+        },
+    "فلای کیش": {
+            "logo":"airlines/FK.svg"
+        },
+    "کاسپین": {
+            "logo":"airlines/IV.svg"
+        },
+    "لاد": {
+            "logo":"airlines/LD.svg"
+        },
+    "نسیم ایر": {
+            "logo":"airlines/NA.svg"
+        },
+    "چابهار": {
+            "logo":"airlines/RI.svg"
+        },
+}
 
 # ⚠️ برچسب تب‌های مرتب‌سازی صفحه‌ی خارجی تأیید نشده؛ فعلاً همان برچسب‌های
 # مستربلیط داخلی است. اگر پیدا نشد فقط پیام چاپ می‌شود و رد می‌شویم
