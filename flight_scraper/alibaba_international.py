@@ -85,7 +85,68 @@ SORT_TAB_LABELS = {
     "earliest": "زودترین",
     "latest": "دیرترین",
 }
-
+AIRLINE_LOGOS = {
+    "Zagros Airline": {
+        "logo":"airlines/ZG.svg"
+    },
+    "IRAN AIRTOUR": {
+        "logo":"airlines/B99.svg"
+    },
+    "IranAir": {
+        "logo":"airlines/B9.svg"
+    },
+    "Ata Airlines": {
+            "logo":"airlines/I3.svg"
+        },
+    "Meraj Airlines": {
+            "logo":"airlines/MJ.svg"
+        },
+    "Varesh": {
+            "logo":"airlines/VR.png"
+        },
+    "ماهان": {
+            "logo":"airlines/W5.svg"
+        },
+    "Sepehran": {
+            "logo":"airlines/SR.svg"
+        },
+    "کارون": {
+            "logo":"airlines/NV.svg"
+        },
+    "جی اسکای": {
+            "logo":"airlines/JS.png"
+        },
+    "Taban Air": {
+            "logo":"airlines/HH.svg"
+        },
+    "آساجت": {
+            "logo":"airlines/SJ.png"
+        },
+    "اطلس ایر": {
+            "logo":"airlines/AT.svg"
+        },
+    "FlyKish": {
+            "logo":"airlines/FK.svg"
+        },
+    "Caspian Airline": {
+            "logo":"airlines/IV.svg"
+        },
+    "لاد": {
+            "logo":"airlines/LD.svg"
+        },
+    "نسیم ایر": {
+            "logo":"airlines/NA.svg"
+        },
+    "چابهار": {
+            "logo":"airlines/RI.svg"
+        },
+    "Saha Airline": {
+            "logo":"airlines/SA.svg"
+        },
+    "Qeshm Air": {
+            "logo":"airlines/QB.svg"
+        },
+}
 # ساختار متن هر کارت پرواز (یک div برگ بدون فرزند div) روی صفحه‌ی خارجی،
 # طبق نمونه‌ی واقعی مشاهده‌شده، همه چیز پشت‌سرهم و بدون جداکننده است، مثلاً:
 # "IranAirسیستمیاکونومی19:05تهران IKA3 ساعت و 55 دقیقه22:30استانبول IST30 KG"
@@ -116,6 +177,17 @@ FLIGHT_CARD_HINT = re.compile(r"(سیستمی|چارتری).*(اکونومی|ب�
 PRICE_CARD_HINT = re.compile(r"[\d,]{4,}\s*تومان")
 
 
+def get_airline_logo(airline_name):
+    """نام ایرلاین (فارسی) را با کلیدهای AIRLINE_LOGOS مقایسه می‌کند و در صورت
+    تطابق، مسیر لوگو را برمی‌گرداند؛ در غیر این صورت None."""
+    if not airline_name:
+        return None
+    for name, logo in AIRLINE_LOGOS.items():
+        if name in airline_name:
+            return logo["logo"]
+    return None
+
+
 def convert_to_jalali(date_str):
     gregorian_date = datetime.strptime(date_str, "%Y-%m-%d").date()
     return jdatetime.date.fromgregorian(date=gregorian_date)
@@ -142,16 +214,7 @@ def build_alibaba_international_url(origin: str, destination: str) -> str | None
 
 
 def login_if_required(page, timeout=15000):
-    """بعضی وقت‌ها بعد از جستجو، علی‌بابا یک مودال ورود اجباری نشون می‌ده
-    («برای تجربه بهتر در جستجو و خرید... ابتدا وارد شوید یا ثبت‌نام کنید»).
-    این تابع اگر همچین مودالی باز بود، با شماره/رمز عبور (که از فایل .env
-    خونده می‌شن) لاگین می‌کنه. اگر مودال باز نباشه، بی‌سروصدا رد می‌شه.
 
-    شماره موبایل و رمز عبور باید توی .streamlit/secrets.toml (که در گیت
-    نادیده گرفته می‌شه) با این کلیدها تنظیم بشن:
-        ALIBABA_PHONE = "09xxxxxxxxx"
-        ALIBABA_PASSWORD = "your-password"
-    """
 
     password_login_button = page.get_by_role(
         "button", name="ورود با کلمه عبور"
@@ -460,9 +523,11 @@ def search_alibaba_international(
 
                     price_value = int(price_info["price"].replace(",", ""))
 
+                    airline_name = info["airline"].strip()
+
                     flight = {
-                        "airline": info["airline"].strip(),
-                        "airline_logo": None,
+                        "airline": airline_name,
+                        "airline_logo": get_airline_logo(airline_name),
                         "flight_type": info["flight_type"],
                         "cabin_class": info["cabin_class"],
                         "aircraft": "نامشخص",

@@ -106,6 +106,12 @@ AIRLINE_LOGOS = {
     "چابهار": {
             "logo":"airlines/RI.svg"
         },
+    "ساها ایر": {
+            "logo":"airlines/SA.svg"
+        },
+    "قشم ایر": {
+            "logo":"airlines/QB.svg"
+        },
 }
 
 # ⚠️ برچسب تب‌های مرتب‌سازی صفحه‌ی خارجی تأیید نشده؛ فعلاً همان برچسب‌های
@@ -590,6 +596,13 @@ def parse_card_text(card_text):
             airline = line
             break
 
+    airline_logo = None
+    if airline:
+        for name, logo in AIRLINE_LOGOS.items():
+            if name in airline:
+                airline_logo = logo["logo"]
+                break
+
     # مدل هواپیما (مثل ATR) را قبل از جستجوی کد فرودگاه حذف می‌کنیم
     codes = AIRPORT_CODE_RE.findall(AIRCRAFT_RE.sub(" ", text))
 
@@ -622,6 +635,7 @@ def parse_card_text(card_text):
 
     return {
         "airline": airline or "نامشخص",
+        "airline_logo": airline_logo,
         "flight_type": flight_type or "نامشخص",
         "cabin_class": first_match(CABIN_RE) or "نامشخص",
         "aircraft": first_match(AIRCRAFT_RE) or "نامشخص",
@@ -737,7 +751,7 @@ def search_mrbilit_international(
                     flights.append(
                         {
                             "airline": info["airline"],
-                            "airline_logo": None,
+                            "airline_logo": info["airline_logo"],
                             "flight_type": info["flight_type"],
                             "cabin_class": info["cabin_class"],
                             "aircraft": info["aircraft"],

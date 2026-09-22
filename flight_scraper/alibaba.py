@@ -110,7 +110,7 @@ AIRLINE_LOGOS = {
         "logo":"airlines/ZG.svg"
     },
     "ایران ایرتور": {
-        "logo":"airlines/B9.svg"
+        "logo":"airlines/B99.svg"
     },
     "ایران ایر": {
         "logo":"airlines/B9.svg"
@@ -159,6 +159,12 @@ AIRLINE_LOGOS = {
         },
     "چابهار": {
             "logo":"airlines/RI.svg"
+        },
+    "ساها ایر": {
+            "logo":"airlines/SA.svg"
+        },
+    "قشم ایر": {
+            "logo":"airlines/QB.svg"
         },
 }
 def select_departure_date(page, date_str):
