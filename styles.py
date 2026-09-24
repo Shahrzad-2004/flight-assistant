@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 
 
 def inject_background_style(background: str) -> None:
@@ -199,6 +200,22 @@ def inject_main_style() -> None:
         color:#6b7280 !important;
     
     }
+
+    /* دکمه‌ی فلش ارسال (submit) داخل کادر چت - هم‌رنگ برند */
+    [data-testid="stChatInputSubmitButton"]{
+        background:#488091 !important;
+        border-color:#488091 !important;
+    }
+
+    [data-testid="stChatInputSubmitButton"]:hover{
+        background:#3d6d7b !important;
+        border-color:#3d6d7b !important;
+    }
+
+    [data-testid="stChatInputSubmitButton"] svg{
+        fill:#ffffff !important;
+    }
+
     /* متن حالت جستجو و لودینگ */
     
     [data-testid="stSpinner"] {
@@ -874,6 +891,7 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         width:140px !important;
         max-width:140px !important;
     }}
+
     /* حذف فلش کنار دکمه popover */
     [data-testid="stPopover"] button svg {{
         display:none !important;
@@ -896,8 +914,6 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         padding:0 !important;
 
         font-size:18px !important;
-
-        transform:translateX(-10px) !important;
     }}
 
 
@@ -907,8 +923,6 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         background:rgba(72,128,145,.15) !important;
 
         border-radius:10px !important;
-
-        transform:translateX(-10px) !important;
     }}
 
     /* حذف سایه‌ی پیش‌فرض همه‌ی دکمه‌های داخل کارت گفتگو، تا هیچ
@@ -1115,6 +1129,102 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
     """,
         unsafe_allow_html=True
     )
+
+def inject_delete_popup_position() -> None:
+    """جای دکمه‌ی «حذف» را برای هر ردیف گفتگو از روی جای واقعی سه‌نقطه‌ی
+    همان ردیف حساب می‌کند (نه مختصات ثابت صفحه):
+      - دقیقاً هم‌تراز عمودی با سه‌نقطه‌ی همان ردیف
+      - حدود ۳cm (≈۱۱۳px) فاصله‌ی افقی از سه‌نقطه، بیرون از کادر چت
+    پاپ‌آپ استریم‌لیت بیرون از ردیف رندر می‌شود، پس با یک اسکریپت
+    کوچک و از روی getBoundingClientRect همان ردیف جابه‌جا می‌شود.
+    فقط جای دکمه عوض می‌شود؛ ظاهر آن دست‌نخورده است."""
+
+    components.html(
+        """
+        <script>
+        (function () {
+            var win = window.parent;
+            var doc = win.document;
+
+            // فقط یک بار نصب شود (با هر rerun دوباره نصب نشود)
+            if (win.__deletePopupPositionInstalled) { return; }
+            win.__deletePopupPositionInstalled = true;
+
+            var GAP_PX = 30;      // حدود ۳ سانتی‌متر
+            var EDGE_PX = 8;       // حداقل فاصله از لبه‌ی پنجره
+
+            var busy = false;
+            var observer = null;
+
+            function findPopup(del) {
+                var pop = del.closest('[data-baseweb="popover"]');
+                if (pop) { return pop; }
+                var el = del.parentElement;
+                while (el && el !== doc.body) {
+                    var pos = win.getComputedStyle(el).position;
+                    if (pos === "absolute" || pos === "fixed") { return el; }
+                    el = el.parentElement;
+                }
+                return null;
+            }
+
+            function place() {
+                var del = doc.querySelector(
+                    '[class*="st-key-delete_option_"] button'
+                );
+                if (!del) { return; }
+
+                var holder = del.closest('[class*="st-key-delete_option_"]');
+                var m = /st-key-delete_option_([^ ]+)/.exec(holder.className);
+                if (!m) { return; }
+
+                // سه‌نقطه‌ی همان ردیفی که منویش باز شده
+                var anchor = doc.querySelector(
+                    '.st-key-menu_toggle_' + m[1] + ' button'
+                );
+                var pop = findPopup(del);
+                if (!anchor || !pop) { return; }
+
+                busy = true;
+
+                // اندازه‌گیری از جای طبیعی پاپ‌آپ (بدون جابه‌جایی قبلی)
+                pop.style.setProperty("translate", "0px 0px", "important");
+                var a = anchor.getBoundingClientRect();
+                var b = del.getBoundingClientRect();
+
+                var dx = a.right + GAP_PX - b.left;
+                var maxLeft = win.innerWidth - b.width - EDGE_PX;
+                if (b.left + dx > maxLeft) { dx = maxLeft - b.left; }
+
+                var dy = (a.top + a.height / 2) - (b.top + b.height / 2);
+
+                pop.style.setProperty(
+                    "translate", dx + "px " + dy + "px", "important"
+                );
+
+                observer.takeRecords();
+                busy = false;
+            }
+
+            observer = new win.MutationObserver(function () {
+                if (!busy) { place(); }
+            });
+
+            observer.observe(doc.body, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ["style"]
+            });
+
+            win.addEventListener("resize", place);
+        })();
+        </script>
+        """,
+        height=0
+    )
+
+
 def render_header() -> None:
     """رندر کارت اصلی، لوگو، عنوان و زیرعنوان."""
     # هدر
