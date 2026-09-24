@@ -22,7 +22,8 @@ from styles import (
     inject_login_style,
     inject_auth_style,
     inject_user_box_style,
-    inject_flight_ticket
+    inject_flight_ticket,
+    inject_delete_popup_position
   
 
 
@@ -246,7 +247,7 @@ with st.sidebar:
 
             with row_menu:
 
-                with st.popover("⋮"):
+                with st.popover("⋮", key=f"menu_toggle_{session_id}"):
                     if st.button(
                         " حذف",
                         key=f"delete_option_{session_id}",
@@ -778,6 +779,9 @@ st.markdown(
     "</div>",
     unsafe_allow_html=True
 )
+
+# جای دکمه‌ی «حذف» نسبت به سه‌نقطه‌ی همان ردیف گفتگو
+inject_delete_popup_position()
 
 
 if prompt:
