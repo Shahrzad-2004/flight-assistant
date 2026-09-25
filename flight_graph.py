@@ -258,8 +258,40 @@ def enter_passengers(state: FlightState) -> FlightState:
         "assistant_message": "تعداد بزرگسال، کودک و نوزاد را مشخص کنید.",
         "ui_type": "passenger_counter"
     }
- 
- 
+
+
+# =========================================================
+# 2.۵) بررسی معتبربودن تعداد مسافران (حداقل ۱ بزرگسال)
+# =========================================================
+def validate_passenger_count(state: FlightState) -> dict:
+    """فقط بررسی می‌کند تعداد بزرگسال معتبر است یا نه."""
+    return {}
+
+
+def route_passenger_count(state: FlightState) -> str:
+    adults = state.get("adults")
+
+    # اگر تعداد بزرگسال مشخص نشده یا صفر/منفی باشد، نامعتبر است
+    if adults is None or adults < 1:
+        return "invalid"
+
+    return "valid"
+
+
+def ask_valid_passenger_count(state: FlightState) -> FlightState:
+    return {
+        "current_step": "invalid_passenger_count",
+        "assistant_message": (
+            "تعداد مسافران بزرگسال باید حداقل ۱ نفر باشد. "
+            "لطفاً تعداد مسافران را دوباره مشخص کنید."
+        ),
+        "ui_type": "passenger_counter",
+        # کاربر را به مرحله‌ی وارد کردن مجدد تعداد برمی‌گردانیم
+        "passenger_status": "entering",
+        "adults": None,
+    }
+
+
 # =========================================================
 # 3) بررسی کلاس پرواز
 # =========================================================
@@ -414,6 +446,7 @@ graph_builder = StateGraph(FlightState)
 graph_builder.add_node("validate_cities", validate_cities)
 graph_builder.add_node("check_required_fields", check_required_fields)
 graph_builder.add_node("check_passenger_status", check_passenger_status)
+graph_builder.add_node("validate_passenger_count", validate_passenger_count)
 graph_builder.add_node("check_cabin_class", check_cabin_class)
 graph_builder.add_node("check_confirmation_status", check_confirmation_status)
  
@@ -422,6 +455,7 @@ graph_builder.add_node("check_confirmation_status", check_confirmation_status)
 graph_builder.add_node("ask_required_fields", ask_required_fields)
 graph_builder.add_node("ask_passenger_choice", ask_passenger_choice)
 graph_builder.add_node("enter_passengers", enter_passengers)
+graph_builder.add_node("ask_valid_passenger_count", ask_valid_passenger_count)
 graph_builder.add_node("ask_cabin_class", ask_cabin_class)
 graph_builder.add_node("check_sort_by", check_sort_by)
 graph_builder.add_node("ask_sort_by", ask_sort_by)
@@ -462,7 +496,18 @@ graph_builder.add_conditional_edges(
     {
         "unknown": "ask_passenger_choice",
         "entering": "enter_passengers",
-        "resolved": "check_cabin_class"
+        "resolved": "validate_passenger_count"
+    }
+)
+
+
+# اعتبارسنجی تعداد مسافران (حداقل ۱ بزرگسال)
+graph_builder.add_conditional_edges(
+    "validate_passenger_count",
+    route_passenger_count,
+    {
+        "invalid": "ask_valid_passenger_count",
+        "valid": "check_cabin_class"
     }
 )
  
@@ -506,6 +551,7 @@ graph_builder.add_conditional_edges(
 graph_builder.add_edge("ask_required_fields", END)
 graph_builder.add_edge("ask_passenger_choice", END)
 graph_builder.add_edge("enter_passengers", END)
+graph_builder.add_edge("ask_valid_passenger_count", END)
 graph_builder.add_edge("ask_cabin_class", END)
 graph_builder.add_edge("ask_sort_by", END)
 graph_builder.add_edge("show_confirmation", END)

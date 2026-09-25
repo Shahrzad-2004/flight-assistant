@@ -1,4 +1,13 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import (
+    ThreadPoolExecutor,
+    as_completed,
+    TimeoutError as FutureTimeoutError,
+)
+
+# حداکثر زمانی که کل جستجو (هر دو منبع با هم) اجازه داره طول بکشه.
+# اگه از این زمان بگذره و هنوز جوابی از یک منبع نیومده باشه، از همون
+# منبع صرف‌نظر می‌کنیم و با نتایج منبع(های) دیگه ادامه می‌دیم.
+SEARCH_TIMEOUT_SECONDS = 30
  
 from .alibaba import search_alibaba, IATA_CODES as DOMESTIC_IATA_CODES
 from .mrbilit import search_mrbilit
@@ -87,16 +96,31 @@ def search_all_flights(
  
     flights = []
  
-    for task in as_completed(tasks):
-        try:
-            result = task.result()
-            print("نتیجه‌ی یک منبع - تعداد:", len(result) if result else 0)
-            if result:
-                for f in result:
-                    print("  ->", f.get("source"), f.get("airline"), f.get("departure_time"), f.get("price"))
-                flights.extend(result)
-        except Exception as e:
-            print("خطا در یکی از سایت‌ها:", e)
+    try:
+        for task in as_completed(tasks, timeout=SEARCH_TIMEOUT_SECONDS):
+            try:
+                result = task.result()
+                print("نتیجه‌ی یک منبع - تعداد:", len(result) if result else 0)
+                if result:
+                    for f in result:
+                        print("  ->", f.get("source"), f.get("airline"), f.get("departure_time"), f.get("price"))
+                    flights.extend(result)
+            except Exception as e:
+                print("خطا در یکی از سایت‌ها:", e)
+    except FutureTimeoutError:
+        # حداقل یک منبع توی زمان مقرر جواب نداده. تسک‌های ناتموم رو
+        # کنسل می‌کنیم (اگه هنوز شروع نشده باشن کنسل می‌شن؛ اگه توی
+        # حال اجرا باشن، cancel روشون اثر نداره ولی جلوی صف‌شدن
+        # جستجوهای بعدی رو می‌گیره) و با هر نتیجه‌ای که تا الان
+        # جمع شده ادامه می‌دیم به‌جای اینکه کل جستجو رو هنگ کنیم.
+        print(
+            "هشدار: بعضی از منابع در",
+            SEARCH_TIMEOUT_SECONDS,
+            "ثانیه جواب ندادن؛ با نتایج موجود ادامه می‌دیم.",
+        )
+        for t in tasks:
+            if not t.done():
+                t.cancel()
  
     if sort_by == "cheapest":
         flights.sort(key=lambda x: x.get("price_value", 0))
