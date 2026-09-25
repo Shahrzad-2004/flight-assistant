@@ -6,6 +6,7 @@
 و Graph پروازها (flight_graph) را دوباره اجرا می‌کنند.
 """
 import uuid
+import traceback
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -21,6 +22,70 @@ WELCOME_MESSAGE = (
 def current_user_id():
     """آی‌دی کاربر لاگین‌شده، یا None اگر مهمان باشد."""
     return st.session_state.get("user", {}).get("id")
+
+
+def _run_graph_step(current_state, user_message):
+    """
+    گراف پروازها را با state جدید اجرا می‌کند و پیام کاربر/پاسخ دستیار
+    را ذخیره می‌کند.
+
+    این تابع مرکزیِ مشترکِ همه‌ی دکمه‌های رابط کاربری است (کلاس پرواز،
+    مرتب‌سازی، تعداد مسافران، تأیید/ویرایش پرواز و ...). قبلاً هرکدام از
+    این callbackها مستقیماً flight_graph.invoke را صدا می‌زدند و اگر
+    گراف خطای غیرمنتظره می‌داد (مثلاً کلید assistant_message وجود
+    نداشت یا state ناقص بود)، کل اپ Streamlit کرش می‌کرد و کاربر یک
+    traceback خام می‌دید.
+
+    اینجا:
+      ۱) پیام کاربر همیشه ذخیره می‌شود (خودش دلیل خطا نیست).
+      ۲) invoke کردن گراف در try/except قرار می‌گیرد.
+      ۳) اگر خطا رخ دهد، flight_state قبلی دست‌نخورده باقی می‌ماند
+         (بازگردانی state جدید انجام نمی‌شود) تا کاربر بتواند دوباره
+         تلاش کند، و یک پیام خطای قابل‌فهم فارسی نشان داده می‌شود،
+         بدون لو رفتن جزئیات فنی خطا.
+    """
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_message
+        }
+    )
+    save_message(
+        st.session_state.session_id,
+        "user",
+        user_message,
+        user_id=current_user_id()
+    )
+
+    try:
+        graph_result = flight_graph.invoke(current_state)
+        assistant_message = graph_result["assistant_message"]
+    except Exception:
+        print("GRAPH STEP ERROR:")
+        print(traceback.format_exc())
+        graph_result = None
+        assistant_message = (
+            "متأسفم، یک خطای غیرمنتظره پیش آمد. لطفاً دوباره تلاش "
+            "کنید یا اطلاعات را از نو وارد کنید."
+        )
+
+    if graph_result is not None:
+        st.session_state["flight_state"] = graph_result
+
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": assistant_message
+        }
+    )
+    save_message(
+        st.session_state.session_id,
+        "assistant",
+        assistant_message,
+        user_id=current_user_id()
+    )
+
+    return graph_result
 
 
 def scroll_to_bottom():
@@ -48,46 +113,11 @@ def select_cabin_class(cabin_value, cabin_label):
     # قرار دادن انتخاب کاربر در State
     current_state["cabin_class"] = cabin_value
 
-    # اجرای دوباره گراف برای تعیین مرحله بعد
-    graph_result = flight_graph.invoke(current_state)
-    st.session_state["flight_state"] = graph_result
-    print(
-        "FINAL SESSION FLIGHT STATE:",
-        st.session_state["flight_state"]
-    )
     user_message = f"کلاس پرواز: {cabin_label}"
 
-    # ذخیره پیام انتخاب کاربر در حافظه
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": user_message
-        }
-    )
+    graph_result = _run_graph_step(current_state, user_message)
 
-    save_message(
-        st.session_state.session_id,
-        "user",
-        user_message,
-        user_id=current_user_id()
-    )
-
-    # ذخیره پاسخ مرحله بعد گراف
-    assistant_message = graph_result["assistant_message"]
-
-    st.session_state.messages.append(
-        {
-            "role": "assistant",
-            "content": assistant_message
-        }
-    )
-
-    save_message(
-        st.session_state.session_id,
-        "assistant",
-        assistant_message,
-        user_id=current_user_id()
-    )
+    print("FINAL SESSION FLIGHT STATE:", st.session_state["flight_state"])
 def select_sort_by(sort_value, sort_label):
 
     current_state = st.session_state["flight_state"].copy()
@@ -95,43 +125,9 @@ def select_sort_by(sort_value, sort_label):
     # قرار دادن انتخاب کاربر در State
     current_state["sort_by"] = sort_value
 
-    # اجرای دوباره گراف برای تعیین مرحله بعد
-    graph_result = flight_graph.invoke(current_state)
-    st.session_state["flight_state"] = graph_result
-
     user_message = f"مرتب‌سازی بر اساس: {sort_label}"
 
-    # ذخیره پیام انتخاب کاربر در حافظه
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": user_message
-        }
-    )
-
-    save_message(
-        st.session_state.session_id,
-        "user",
-        user_message,
-        user_id=current_user_id()
-    )
-
-    # ذخیره پاسخ مرحله بعد گراف
-    assistant_message = graph_result["assistant_message"]
-
-    st.session_state.messages.append(
-        {
-            "role": "assistant",
-            "content": assistant_message
-        }
-    )
-
-    save_message(
-        st.session_state.session_id,
-        "assistant",
-        assistant_message,
-        user_id=current_user_id()
-    )
+    _run_graph_step(current_state, user_message)
 def select_passenger_option(option):
 
     current_state = st.session_state["flight_state"].copy()
@@ -156,53 +152,9 @@ def select_passenger_option(option):
         current_state["passengers_confirmed"] = True
         user_message = "تعداد مسافران را وارد نمی‌کنم."
 
-    # اجرای دوباره گراف
-    graph_result = flight_graph.invoke(current_state)
+    graph_result = _run_graph_step(current_state, user_message)
 
-    # ذخیره State جدید
-    st.session_state["flight_state"] = graph_result
-    print(
-        "FINAL SESSION FLIGHT STATE:",
-        st.session_state["flight_state"]
-    )
-    # ذخیره پیام کاربر در چت
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": user_message
-        }
-    )
-
-    save_message(
-        st.session_state.session_id,
-        "user",
-        user_message,
-        user_id=current_user_id()
-    )
-
-    # پاسخ گراف
-    assistant_message = graph_result[
-        "assistant_message"
-    ]
-
-    st.session_state.messages.append(
-        {
-            "role": "assistant",
-            "content": assistant_message
-        }
-    )
-
-    save_message(
-        st.session_state.session_id,
-        "assistant",
-        assistant_message,
-        user_id=current_user_id()
-    )
-
-    print(
-        "PASSENGER OPTION RESULT:",
-        graph_result
-    )
+    print("PASSENGER OPTION RESULT:", graph_result)
 def save_passenger_counts():
 
     current_state = st.session_state["flight_state"].copy()
@@ -225,88 +177,18 @@ def save_passenger_counts():
         f"{current_state['infants']} نوزاد"
     )
 
-    # اجرای دوباره لنگ گراف
-    graph_result = flight_graph.invoke(current_state)
+    graph_result = _run_graph_step(current_state, user_message)
 
-    st.session_state["flight_state"] = graph_result
-
-    # ذخیره پیام انتخاب کاربر
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": user_message
-        }
-    )
-
-    save_message(
-        st.session_state.session_id,
-        "user",
-        user_message,
-        user_id=current_user_id()
-    )
-
-    # ذخیره پاسخ گراف
-    assistant_message = graph_result["assistant_message"]
-
-    st.session_state.messages.append(
-        {
-            "role": "assistant",
-            "content": assistant_message
-        }
-    )
-
-    save_message(
-        st.session_state.session_id,
-        "assistant",
-        assistant_message,
-        user_id=current_user_id()
-    )
-
-    print(
-        "PASSENGER COUNTER RESULT:",
-        graph_result
-    )
+    print("PASSENGER COUNTER RESULT:", graph_result)
 def confirm_flight():
 
     current_state = st.session_state["flight_state"].copy()
 
     current_state["confirmation_status"] = "confirmed"
 
-    graph_result = flight_graph.invoke(current_state)
-
-    st.session_state["flight_state"] = graph_result
-
     user_message = "اطلاعات پرواز را تأیید می‌کنم."
 
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": user_message
-        }
-    )
-
-    save_message(
-        st.session_state.session_id,
-        "user",
-        user_message,
-        user_id=current_user_id()
-    )
-
-    assistant_message = graph_result["assistant_message"]
-
-    st.session_state.messages.append(
-        {
-            "role": "assistant",
-            "content": assistant_message
-        }
-    )
-
-    save_message(
-        st.session_state.session_id,
-        "assistant",
-        assistant_message,
-        user_id=current_user_id()
-    )
+    _run_graph_step(current_state, user_message)
 
 
 def edit_flight():
@@ -315,41 +197,9 @@ def edit_flight():
 
     current_state["confirmation_status"] = "editing"
 
-    graph_result = flight_graph.invoke(current_state)
-
-    st.session_state["flight_state"] = graph_result
-
     user_message = "می‌خواهم اطلاعات پرواز را ویرایش کنم."
 
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": user_message
-        }
-    )
-
-    save_message(
-        st.session_state.session_id,
-        "user",
-        user_message,
-        user_id=current_user_id()
-    )
-
-    assistant_message = graph_result["assistant_message"]
-
-    st.session_state.messages.append(
-        {
-            "role": "assistant",
-            "content": assistant_message
-        }
-    )
-
-    save_message(
-        st.session_state.session_id,
-        "assistant",
-        assistant_message,
-        user_id=current_user_id()
-    )
+    _run_graph_step(current_state, user_message)
 def toggle_sidebar():
     """باز یا بسته کردن نوار کناری کشویی با دکمه شناور بالای صفحه."""
     st.session_state.sidebar_open = not st.session_state.get(

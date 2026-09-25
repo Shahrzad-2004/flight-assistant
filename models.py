@@ -34,8 +34,12 @@ class FlightRequest(BaseModel):
 
     adults: Optional[int] = Field(
         default=None,
-        ge=1,
-        description="تعداد مسافران بزرگسال"
+        ge=0,
+        description=(
+            "تعداد مسافران بزرگسال؛ حتی اگر کاربر عدد نامعتبر (مثلاً ۰) "
+            "گفته باشد همان عدد باید برگردد تا برنامه خودش با پیام "
+            "مناسب از کاربر اصلاح آن را بخواهد."
+        )
     )
 
     children: Optional[int] = Field(
