@@ -101,3 +101,7 @@ class FlightRequest(BaseModel):
             "(ارزان‌ترین، زودترین، دیرترین، گران‌ترین) را مشخص کرده است؟"
         )
     )
+    route_error: Optional[str] = Field(
+        default=None,
+        description="خطای مربوط به اعتبارسنجی مسیر پرواز"
+    )

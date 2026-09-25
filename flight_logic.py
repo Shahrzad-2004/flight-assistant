@@ -6,9 +6,11 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
  
 import streamlit as st
+import re
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+
  
 from models import FlightRequest
  
@@ -25,7 +27,7 @@ def create_flight_extractor():
         )
  
     llm = ChatOpenAI(
-        model="qwen3.7-plus",
+        model="qwen3.8-flash",
         api_key=api_key,
         base_url="https://api.avalai.ir/v1",
         temperature=0
@@ -128,7 +130,34 @@ current_state را فقط برای «فهمیدن زمینه» پیام فعلی
     ])
  
     return extraction_prompt | structured_llm
- 
+
+
+def detect_route_from_text(text: str):
+
+    text = text.strip()
+
+    patterns = [
+        ("از", "به")
+    ]
+
+    origin = None
+    destination = None
+
+
+    if "از" in text and "به" in text:
+
+        try:
+            part = text.split("از")[1]
+
+            origin = part.split("به")[0].strip()
+
+            destination = part.split("به")[1].strip()
+
+        except:
+            pass
+
+
+    return origin, destination
 def resolve_departure_date(raw_date: str | None):
  
     if not raw_date:
@@ -199,6 +228,8 @@ def resolve_departure_date(raw_date: str | None):
             return target_date.isoformat()
  
     return None
+
+    return routes
 def extract_flight_request(user_text: str,current_state: dict | None = None) -> FlightRequest:
  
     today = datetime.now(ZoneInfo("Asia/Tehran")).date().isoformat()
@@ -213,7 +244,21 @@ def extract_flight_request(user_text: str,current_state: dict | None = None) -> 
         "today": today,
         "current_state": current_state
     })
+    text_origin, text_destination = detect_route_from_text(
+        user_text
+    )
+
+
+    if text_origin:
+        result.origin = text_origin
+
+
+    if text_destination:
+        result.destination = text_destination
     raw_date = result.departure_date_raw
+
+
+
  
     resolved_date = resolve_departure_date(
         raw_date
@@ -221,6 +266,7 @@ def extract_flight_request(user_text: str,current_state: dict | None = None) -> 
  
     if resolved_date is not None:
         result.departure_date = resolved_date
+    
  
     return result
  
