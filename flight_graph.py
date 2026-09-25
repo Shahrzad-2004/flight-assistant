@@ -2,6 +2,7 @@ from typing import TypedDict, Optional, Literal
 from langgraph.graph import StateGraph, START, END
 from flight_scraper.scraper_manager import search_all_flights
 from flight_scraper.alibaba import IATA_CODES
+from city_matching import resolve_city
 from flight_scraper.alibaba_international import (
     INTERNATIONAL_IATA_CODES,
     INTERNATIONAL_ORIGIN_CITIES,
@@ -80,12 +81,40 @@ class FlightState(TypedDict, total=False):
     ]
  
  
- 
+def non_flight_message(state: FlightState):
+
+    return {
+        "current_step": "non_flight_message",
+        "assistant_message": (
+            "این پیام مربوط به درخواست پرواز یا جستجوی بلیط نیست. "
+            "اگر قصد رزرو یا جستجوی پرواز دارید، لطفاً اطلاعات سفر را وارد کنید."
+        ),
+        "ui_type": "chat_input"
+    }
+
+def route_flight_request(state):
+
+    if (
+        state.get("is_flight_request") is False
+        and state.get("current_step") not in [
+            "ask_passenger_choice",
+            "enter_passengers",
+            "ask_required_fields",
+            "ask_cabin_class",
+            "ask_sort_by",
+            "confirmation"
+        ]
+    ):
+        return "non_flight"
+
+    return "flight"
 #  بررسی اطلاعات ضروری
  
 def check_required_fields(state: FlightState) -> dict:
     """فقط بررسی می‌کند که اطلاعات ضروری کامل هستند یا نه."""
     return {}
+
+
  
  
 def route_required_fields(state: FlightState) -> str:
@@ -145,39 +174,43 @@ def validate_international_route(origin: str, destination: str) -> Optional[str]
     return None
 
 
+
+
 def validate_cities(state: FlightState) -> dict:
-    origin = (state.get("origin") or "").strip()
-    destination = (state.get("destination") or "").strip()
- 
-    if origin and origin not in SUPPORTED_CITIES:
+    origin_raw = (state.get("origin") or "").strip()
+    destination_raw = (state.get("destination") or "").strip()
+
+    origin = resolve_city(origin_raw, SUPPORTED_CITIES) if origin_raw else None
+    destination = resolve_city(destination_raw, SUPPORTED_CITIES) if destination_raw else None
+
+    if origin_raw and not origin:
         return {
             **state,
-            "origin": None,  # پاک‌کردن مبدأ نامعتبر
+            "origin": None,
             "current_step": "invalid_city",
             "assistant_message": (
-                f"شهر مبدأ «{origin}» در فهرست شهرهای "
+                f"شهر مبدأ «{origin_raw}» در فهرست شهرهای "
                 "پشتیبانی‌شده نیست. لطفاً مبدأ دیگری وارد کنید."
             ),
             "ui_type": "chat_input",
             "flights": [],
         }
- 
-    if destination and destination not in SUPPORTED_CITIES:
+
+    if destination_raw and not destination:
         return {
             **state,
-            "destination": None,  # پاک‌کردن مقصد نامعتبر
+            "destination": None,
             "current_step": "invalid_city",
             "assistant_message": (
-                f"شهر مقصد «{destination}» در فهرست شهرهای "
+                f"شهر مقصد «{destination_raw}» در فهرست شهرهای "
                 "پشتیبانی‌شده نیست. لطفاً مقصد دیگری وارد کنید."
             ),
             "ui_type": "chat_input",
             "flights": [],
         }
- 
+
     if origin and destination:
         route_error = validate_international_route(origin, destination)
-
         if route_error:
             return {
                 **state,
@@ -191,6 +224,8 @@ def validate_cities(state: FlightState) -> dict:
 
     return {
         **state,
+        "origin": origin,          # مهم: مقدار نرمال‌شده رو جایگزین کن
+        "destination": destination, # وگرنه بقیه‌ی pipeline «Tehran» رو می‌بینه نه «تهران»
         "current_step": "cities_valid",
         "assistant_message": "",
     }
@@ -443,6 +478,7 @@ def search_flights(state: FlightState) -> FlightState:
 graph_builder = StateGraph(FlightState)
  
 # نودهای بررسی
+graph_builder.add_node("non_flight_message",non_flight_message)
 graph_builder.add_node("validate_cities", validate_cities)
 graph_builder.add_node("check_required_fields", check_required_fields)
 graph_builder.add_node("check_passenger_status", check_passenger_status)
@@ -465,7 +501,16 @@ graph_builder.add_node("search_flights", search_flights)
  
  
 # شروع گراف
-graph_builder.add_edge(START, "validate_cities")
+graph_builder.add_conditional_edges(START,route_flight_request,
+    {
+        "flight": "validate_cities",
+        "non_flight": "non_flight_message"
+    }
+)
+graph_builder.add_edge(
+    "non_flight_message",
+    END
+)
  
  
 # اگر اطلاعات ضروری ناقص بود → سؤال بپرس
