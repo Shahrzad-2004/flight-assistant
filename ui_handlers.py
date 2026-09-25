@@ -58,6 +58,7 @@ def _run_graph_step(current_state, user_message):
     )
 
     try:
+        
         graph_result = flight_graph.invoke(current_state)
         assistant_message = graph_result["assistant_message"]
     except Exception:

@@ -235,6 +235,7 @@ def merge_flight_state(new_request: FlightRequest):
     new_data = new_request.model_dump()
  
     # این دو فیلد را جدا مدیریت می‌کنیم
+    current_state["is_flight_request"] = new_request.is_flight_request
     new_data.pop("is_flight_request", None)
     new_data.pop("passenger_count_provided", None)
     cabin_class_provided = new_data.pop("cabin_class_provided", False)

@@ -55,6 +55,10 @@ def handle_user_prompt(prompt: str) -> None:
                     print("ORIGIN BEFORE GRAPH:", current_state.get("origin"))
                     print("DESTINATION BEFORE GRAPH:", current_state.get("destination"))
                     print("STEP BEFORE GRAPH:", current_state.get("current_step"))
+                    print(
+                            "INTENT BEFORE GRAPH:",
+                            current_state.get("is_flight_request")
+                        )
                     graph_result = flight_graph.invoke(current_state)
 
                     st.session_state["flight_state"] = graph_result
