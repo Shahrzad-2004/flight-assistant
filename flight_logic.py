@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
  
 import streamlit as st
 import re
+import jdatetime
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -158,6 +159,82 @@ def detect_route_from_text(text: str):
 
 
     return origin, destination
+
+
+class InvalidDateError(Exception):
+    """کاربر تاریخ مشخصی گفته، اما آن تاریخ نامعتبر یا در گذشته است.
+
+    برخلاف برگرداندن None (که یعنی «هیچ تاریخی در متن پیدا نشد»)، این
+    استثنا یعنی «تاریخی پیدا شد ولی قابل قبول نیست» — این تفاوت لازم است
+    تا بتوانیم به کاربر دقیقاً بگوییم چرا تاریخش رد شده، نه اینکه فقط
+    بی‌توضیح دوباره از او تاریخ بخواهیم.
+    """
+
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(reason)
+
+
+_PERSIAN_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
+
+PERSIAN_MONTHS = {
+    "فروردین": 1, "اردیبهشت": 2, "خرداد": 3, "تیر": 4,
+    "مرداد": 5, "شهریور": 6, "مهر": 7, "آبان": 8,
+    "آذر": 9, "دی": 10, "بهمن": 11, "اسفند": 12,
+}
+
+
+def _jalali_to_gregorian_iso(year: int, month: int, day: int, today):
+    """تاریخ شمسی را به میلادی تبدیل می‌کند؛ اگر روز/ماه واقعی نباشد یا
+    تاریخ در گذشته باشد، InvalidDateError با دلیل مشخص پرتاب می‌کند."""
+
+    try:
+        j_date = jdatetime.date(year, month, day)
+    except ValueError:
+        raise InvalidDateError(
+            f"«{year}/{month}/{day}» یک تاریخ معتبر نیست "
+            "(روز یا ماه وارد شده وجود ندارد)."
+        )
+
+    g_date = j_date.togregorian()
+
+    if g_date < today:
+        raise InvalidDateError(
+            f"تاریخ «{j_date.strftime('%Y/%m/%d')}» مربوط به گذشته است. "
+            "لطفاً تاریخی از امروز به بعد بگویید."
+        )
+
+    return g_date.isoformat()
+
+
+def validate_departure_date_iso(date_iso: str | None, today=None) -> str | None:
+    """هر تاریخ میلادیِ نهایی (چه از resolve_departure_date، چه حدسِ مستقیمِ
+    LLM) را قبل از استفاده اعتبارسنجی می‌کند.
+
+    اگر تاریخ معتبر و از امروز به بعد باشد None برمی‌گرداند؛ در غیر این
+    صورت متنِ توضیحِ خطا برای نمایش به کاربر برمی‌گرداند.
+    """
+
+    if not date_iso:
+        return None
+
+    if today is None:
+        today = datetime.now(ZoneInfo("Asia/Tehran")).date()
+
+    try:
+        parsed = datetime.strptime(date_iso, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return f"تاریخ «{date_iso}» قابل تشخیص نیست."
+
+    if parsed < today:
+        return (
+            f"تاریخ «{date_iso}» مربوط به گذشته است. "
+            "لطفاً تاریخی از امروز به بعد بگویید."
+        )
+
+    return None
+
+
 def resolve_departure_date(raw_date: str | None):
  
     if not raw_date:
@@ -187,7 +264,50 @@ def resolve_departure_date(raw_date: str | None):
  
     if "امروز" in text:
         return today.isoformat()
- 
+
+    if "دیروز" in text or "پریروز" in text:
+        raise InvalidDateError(
+            "تاریخ «دیروز» مربوط به گذشته است. "
+            "لطفاً تاریخی از امروز به بعد بگویید."
+        )
+
+    # تاریخ عددیِ صریح شمسی، مثل «۱۴۰۳/۱/۵۰» یا «۱۴۰۳-۰۱-۰۵»
+    numeric_text = text.translate(_PERSIAN_DIGITS)
+    numeric_match = re.search(
+        r"(\d{2,4})\s*[/\-]\s*(\d{1,2})\s*[/\-]\s*(\d{1,2})",
+        numeric_text
+    )
+    if numeric_match:
+        year, month, day = (int(g) for g in numeric_match.groups())
+        if year < 100:
+            year += 1400
+        return _jalali_to_gregorian_iso(year, month, day, today)
+
+    # فرمتِ «۵ فروردین» یا «۵ فروردین ۱۴۰۴»
+    for month_name, month_num in PERSIAN_MONTHS.items():
+        month_match = re.search(
+            rf"(\d{{1,2}})\s*{month_name}(?:\s+(\d{{3,4}}))?",
+            numeric_text
+        )
+        if month_match:
+            day = int(month_match.group(1))
+            explicit_year = month_match.group(2)
+
+            if explicit_year:
+                year = int(explicit_year)
+            else:
+                today_j = jdatetime.date.fromgregorian(date=today)
+                year = today_j.year
+                # اگر با سال امسال، این روز از ماه گذشته، سال بعد را در نظر بگیر
+                try:
+                    candidate = jdatetime.date(year, month_num, day)
+                    if candidate.togregorian() < today:
+                        year += 1
+                except ValueError:
+                    pass  # اجازه بده خطای «روز نامعتبر» پایین‌تر گزارش شود
+
+            return _jalali_to_gregorian_iso(year, month_num, day, today)
+
     weekdays = {
         "دوشنبه": 0,
         "دو شنبه": 0,
@@ -257,17 +377,33 @@ def extract_flight_request(user_text: str,current_state: dict | None = None) -> 
         result.destination = text_destination
     raw_date = result.departure_date_raw
 
+    today_date = datetime.now(ZoneInfo("Asia/Tehran")).date()
 
+    try:
+        resolved_date = resolve_departure_date(
+            raw_date
+        )
+    except InvalidDateError as error:
+        # کاربر تاریخ مشخصی گفته ولی نامعتبر یا گذشته بود؛ به‌جای اینکه
+        # departure_date خالی بماند و کاربر بی‌دلیل دوباره سؤال شود،
+        # علتش را صریح نگه می‌داریم تا در مکالمه نمایش داده شود.
+        result.departure_date = None
+        result.date_error = error.reason
+        return result
 
- 
-    resolved_date = resolve_departure_date(
-        raw_date
-    )
- 
     if resolved_date is not None:
         result.departure_date = resolved_date
-    
- 
+
+    # حتی اگر resolve_departure_date چیزی برنگردانده باشد، ممکن است خودِ LLM
+    # مستقیماً یک departure_date حدس زده باشد (مثلاً از یک فرمت غیرمعمول)؛
+    # آن را هم قبل از قبول کردن، برای گذشته‌نبودن بررسی می‌کنیم.
+    date_error = validate_departure_date_iso(
+        result.departure_date, today_date
+    )
+    if date_error:
+        result.departure_date = None
+        result.date_error = date_error
+
     return result
  
 def merge_flight_state(new_request: FlightRequest):
@@ -291,6 +427,10 @@ def merge_flight_state(new_request: FlightRequest):
  
     if not sort_by_provided:
         new_data["sort_by"] = None
+
+    # date_error فقط مربوط به همین پیام است؛ نباید از نوبت‌های قبلی
+    # باقی بماند و روی پیام درست بعدی هم نمایش داده شود.
+    current_state["date_error"] = new_data.pop("date_error", None)
     # فقط اطلاعاتی که در پیام جدید وجود دارند
     # روی اطلاعات قبلی نوشته می‌شوند
     for key, value in new_data.items():
@@ -318,4 +458,3 @@ def merge_flight_state(new_request: FlightRequest):
         )
  
     return current_state
- 
