@@ -20,33 +20,6 @@ def get_google_auth_url():
     st.session_state["oauth_state"] = state
     return authorization_url
 
-
-def render_auth_buttons():
-
-    if "show_email_login" not in st.session_state:
-        st.session_state.show_email_login = False
-
-    google_url = get_google_auth_url()
-
-    left_space, col1, col2, right_space = st.columns([1, 2, 2, 1])
-
-    with col1:
-        st.markdown(
-            f"""
-            <a href="{google_url}" target="_self" class="auth-btn auth-btn-link">
-                🔐 Google ورود / ثبت نام با 
-            </a>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with col2:
-        if st.button(
-            "🔐 Gmail ورود / ثبت نام با ",
-            key="email_login_button",
-            use_container_width=True
-        ):
-            st.session_state.show_email_login = True
 def handle_google_callback():
 
     if "code" not in st.query_params:

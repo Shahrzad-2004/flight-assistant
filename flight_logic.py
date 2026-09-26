@@ -8,7 +8,6 @@ from zoneinfo import ZoneInfo
 import streamlit as st
 import re
 import jdatetime
-from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -78,15 +77,11 @@ current_state را فقط برای «فهمیدن زمینه» پیام فعلی
   شهر را حدسی به مبدأ یا مقصد نسبت نده — از معنای جمله تشخیص بده، و
   به‌صرفِ تنها-شهر-بودن آن را مبدأ فرض نکن.
  
-# تاریخ رفت و برگشت
+# تاریخ رفت
 - تاریخ‌های نسبی (امروز، فردا، پس‌فردا) را نسبت به تاریخ امروز حساب کن.
 - نام روز هفته (شنبه تا جمعه) → نزدیک‌ترین وقوعِ آینده‌ی آن روز.
-- departure_date_raw = عین عبارت تاریخِ کاربر؛ departure_date و
-  return_date = تاریخ محاسبه‌شده با فرمت YYYY-MM-DD.
-- اگر کاربر تاریخ برگشت هم گفت یا صراحتاً «رفت و برگشت» / «برگشت»
-  خواست، trip_type="round_trip" و return_date را هم استخراج کن؛
-  در غیر این صورت trip_type="one_way" (فقط وقتی از متن قابل تشخیص
-  باشد؛ اگر نه، null بگذار).
+- departure_date_raw = عین عبارت تاریخِ کاربر؛ departure_date 
+
  
 # درخواست پرواز بودن (is_flight_request)
 - true: هر اشاره‌ای به بلیط، پرواز، سفر هوایی، مبدأ/مقصد، تاریخ پرواز،
@@ -349,7 +344,6 @@ def resolve_departure_date(raw_date: str | None):
  
     return None
 
-    return routes
 def extract_flight_request(user_text: str,current_state: dict | None = None) -> FlightRequest:
  
     today = datetime.now(ZoneInfo("Asia/Tehran")).date().isoformat()

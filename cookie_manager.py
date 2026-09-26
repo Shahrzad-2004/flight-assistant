@@ -6,9 +6,18 @@ st.cache = st.cache_resource
 
 from streamlit_cookies_manager import EncryptedCookieManager
 
+cookie_password = st.secrets.get("COOKIE_PASSWORD")
+
+if not cookie_password:
+    raise RuntimeError(
+        "کلید COOKIE_PASSWORD در فایل secrets.toml پیدا نشد. "
+        "یک مقدار تصادفی و طولانی برایش بساز و در "
+        ".streamlit/secrets.toml قرار بده (این فایل نباید کامیت شود)."
+    )
+
 cookies = EncryptedCookieManager(
     prefix="flight_assistant",
-    password="FhS4WE7pk"
+    password=cookie_password
 )
 
 
