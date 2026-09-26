@@ -5,7 +5,6 @@ from pathlib import Path
 import streamlit as st
 from datetime import datetime
 import jdatetime
-import streamlit.components.v1 as components
 from chat_database import create_tables, save_message,list_sessions
 from authentication import handle_google_callback, get_google_auth_url
 from user_database import create_users_table,get_user_by_id
@@ -39,7 +38,6 @@ from ui_handlers import (
     start_new_conversation,
     switch_session,
     remove_session,
-    delete_session_dialog,
     toggle_sidebar,
     logout_user,      
 

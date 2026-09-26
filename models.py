@@ -27,11 +27,6 @@ class FlightRequest(BaseModel):
         description="تاریخ رفت به فرمت YYYY-MM-DD"
     )
 
-    return_date: Optional[str] = Field(
-        default=None,
-        description="تاریخ برگشت به فرمت YYYY-MM-DD"
-    )
-
     adults: Optional[int] = Field(
         default=None,
         ge=0,
@@ -101,11 +96,6 @@ class FlightRequest(BaseModel):
             "(ارزان‌ترین، زودترین، دیرترین، گران‌ترین) را مشخص کرده است؟"
         )
     )
-    route_error: Optional[str] = Field(
-        default=None,
-        description="خطای مربوط به اعتبارسنجی مسیر پرواز"
-    )
-
     date_error: Optional[str] = Field(
         default=None,
         description=(

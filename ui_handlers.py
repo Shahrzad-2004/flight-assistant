@@ -249,32 +249,6 @@ def remove_session(session_id: str):
     if session_id == st.session_state.get("session_id"):
         start_new_conversation()
 
-
-@st.dialog("آیا می‌خواهید این چت حذف شود؟")
-def delete_session_dialog(session_id: str):
-    """پنجره‌ی تأیید حذف یک گفتگو - خارج از سایدبار و روی صفحه‌ی
-    اصلی باز می‌شود (st.dialog)، با دو دکمه‌ی هم‌اندازه‌ی بله/خیر."""
-
-    yes_col, no_col = st.columns(2)
-
-    with yes_col:
-        if st.button(
-            "بله",
-            key=f"confirm_delete_{session_id}",
-            use_container_width=True
-        ):
-            remove_session(session_id)
-            st.rerun()
-
-    with no_col:
-        if st.button(
-            "خیر",
-            key=f"cancel_delete_{session_id}",
-            use_container_width=True
-        ):
-            st.rerun()
-
-
 def logout_user():
     """خروج کاربر از حساب: پاک کردن session و کوکی."""
     st.session_state.pop("user", None)

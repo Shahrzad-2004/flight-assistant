@@ -19,12 +19,7 @@ class FlightState(TypedDict, total=False):
     origin: Optional[str]
     destination: Optional[str]
     departure_date: Optional[str]
-    return_date: Optional[str]
     date_error: Optional[str]
- 
-    trip_type: Optional[
-        Literal["one_way", "round_trip"]
-    ]
  
     # کلاس پرواز
     cabin_class: Optional[
