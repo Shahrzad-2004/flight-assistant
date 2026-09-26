@@ -1,12 +1,15 @@
-from concurrent.futures import (
-    as_completed,
-    TimeoutError as FutureTimeoutError,
-)
+from concurrent.futures import wait as futures_wait
 
-# حداکثر زمانی که کل جستجو (هر دو منبع با هم) اجازه داره طول بکشه.
-# اگه از این زمان بگذره و هنوز جوابی از یک منبع نیومده باشه، از همون
-# منبع صرف‌نظر می‌کنیم و با نتایج منبع(های) دیگه ادامه می‌دیم.
+# حداکثر زمانی که منتظر می‌مونیم بدون هیچ هشداری. بعضی از منابع
+# (مخصوصاً نسخه‌ی خارجی مستربلیط که چندین مرحله‌ی فرم/کلیک/صبر داره و
+# روی مرورگر واقعی هم اجرا می‌شه) معمولاً بیشتر از این طول می‌کشن؛ برای
+# همین یک SEARCH_GRACE_SECONDS هم داریم که به‌جای cancel کردن بی‌فایده‌ی
+# تسک‌های درحال‌اجرا (که اصلاً واقعاً متوقفشون نمی‌کنه)، صبر می‌کنیم تا
+# نتیجه‌شون - اگه نزدیکه - از دست نره.
 SEARCH_TIMEOUT_SECONDS = 30
+# مهلت اضافه بعد از SEARCH_TIMEOUT_SECONDS برای تسک‌هایی که هنوز
+# درحال‌اجرا هستن (نه cancel شده، چون cancel روی تسک شروع‌شده اثر نداره).
+SEARCH_GRACE_SECONDS = 30
  
 from .alibaba import search_alibaba, IATA_CODES as DOMESTIC_IATA_CODES
 from .mrbilit import search_mrbilit
@@ -94,31 +97,46 @@ def search_all_flights(
         ]
  
     flights = []
- 
-    try:
-        for task in as_completed(tasks, timeout=SEARCH_TIMEOUT_SECONDS):
-            try:
-                result = task.result()
-                print("نتیجه‌ی یک منبع - تعداد:", len(result) if result else 0)
-                if result:
-                    for f in result:
-                        print("  ->", f.get("source"), f.get("airline"), f.get("departure_time"), f.get("price"))
-                    flights.extend(result)
-            except Exception as e:
-                print("خطا در یکی از سایت‌ها:", e)
-    except FutureTimeoutError:
-        # حداقل یک منبع توی زمان مقرر جواب نداده. تسک‌های ناتموم رو
-        # کنسل می‌کنیم (اگه هنوز شروع نشده باشن کنسل می‌شن؛ اگه توی
-        # حال اجرا باشن، cancel روشون اثر نداره ولی جلوی صف‌شدن
-        # جستجوهای بعدی رو می‌گیره) و با هر نتیجه‌ای که تا الان
-        # جمع شده ادامه می‌دیم به‌جای اینکه کل جستجو رو هنگ کنیم.
+
+    def collect(task):
+        try:
+            result = task.result()
+            print("نتیجه‌ی یک منبع - تعداد:", len(result) if result else 0)
+            if result:
+                for f in result:
+                    print("  ->", f.get("source"), f.get("airline"), f.get("departure_time"), f.get("price"))
+                flights.extend(result)
+        except Exception as e:
+            print("خطا در یکی از سایت‌ها:", e)
+
+    # فاز اول: حداکثر SEARCH_TIMEOUT_SECONDS صبر می‌کنیم.
+    done, not_done = futures_wait(tasks, timeout=SEARCH_TIMEOUT_SECONDS)
+    for t in done:
+        collect(t)
+
+    if not_done:
+        # فاز دوم (grace period): تسک‌های باقی‌مونده «هنوز درحال اجرا»ن،
+        # نه متوقف‌شده - چون cancel() روی تسکی که executor از قبل
+        # شروعش کرده هیچ اثری نداره. پس به‌جای دور انداختن نتیجه‌شون
+        # (که ممکنه فقط چند ثانیه‌ی دیگه آماده بشه، همون‌طور که برای
+        # مستربلیط خارجی معمولاً پیش میاد)، یه مهلت اضافه بهشون می‌دیم.
         print(
             "هشدار: بعضی از منابع در",
             SEARCH_TIMEOUT_SECONDS,
-            "ثانیه جواب ندادن؛ با نتایج موجود ادامه می‌دیم.",
+            "ثانیه جواب ندادن؛",
+            SEARCH_GRACE_SECONDS,
+            "ثانیه‌ی دیگه هم صبر می‌کنیم...",
         )
-        for t in tasks:
-            if not t.done():
+        done2, still_not_done = futures_wait(not_done, timeout=SEARCH_GRACE_SECONDS)
+        for t in done2:
+            collect(t)
+
+        if still_not_done:
+            print(
+                "هشدار: حتی بعد از مهلت اضافه هم بعضی منابع جواب ندادن؛ "
+                "با نتایج موجود ادامه می‌دیم.",
+            )
+            for t in still_not_done:
                 t.cancel()
  
     if sort_by == "cheapest":

@@ -115,6 +115,15 @@ AIRLINE_LOGOS = {
     "سروش ایر": {
             "logo":"airlines/SHR.svg"
         },
+    "رایمون": {
+            "logo":"airlines/RY.svg"
+        },
+    "آسمان": {
+            "logo":"airlines/AS.svg"
+        },
+    "آوا ایر": {
+            "logo":"airlines/AV.svg"
+        },
 }
 
 # ⚠️ برچسب تب‌های مرتب‌سازی صفحه‌ی خارجی تأیید نشده؛ فعلاً همان برچسب‌های
