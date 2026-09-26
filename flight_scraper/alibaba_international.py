@@ -169,13 +169,13 @@ AIRLINE_LOGOS = {
 FLIGHT_CARD_PATTERN = re.compile(
     r"(?P<airline>[^\d\n]+?)\s*"
     r"(?P<flight_type>سیستمی|چارتری)\s*"
-    r"(?P<cabin_class>اکونومی|بیزینس|فرست)\s*"
+    r"(?P<cabin_class>(?:پرمیوم|پریمیوم)\s*اکونومی|اکونومی|بیزینس|فرست)\s*"
     r"(?P<departure_time>\d{1,2}:\d{2})\s*"
     r"(?P<origin_city>[^\d\n]+?)\s*(?P<origin_code>[A-Z]{3})\s*"
     r"(?P<duration>\d+\s*ساعت(?:\s*و\s*\d+\s*دقیقه)?)\s*"
     r"(?P<arrival_time>\d{1,2}:\d{2})\s*"
     r"(?P<destination_city>[^\d\n]+?)\s*(?P<destination_code>[A-Z]{3})\s*"
-    r"(?P<baggage>\d+\s*KG)"
+    r"(?P<baggage>\d+(?:\s*[×xX]\s*\d+)?\s*KG)"
 )
 
 # متن کارت قیمت (هم div برگِ جدا)، مثلاً:
