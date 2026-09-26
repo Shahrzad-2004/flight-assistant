@@ -105,3 +105,11 @@ class FlightRequest(BaseModel):
         default=None,
         description="خطای مربوط به اعتبارسنجی مسیر پرواز"
     )
+
+    date_error: Optional[str] = Field(
+        default=None,
+        description=(
+            "پیام خطا وقتی تاریخ حرکتی که کاربر گفته نامعتبر "
+            "(مثلاً روز/ماه غیرواقعی) یا در گذشته است."
+        )
+    )

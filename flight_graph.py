@@ -20,6 +20,7 @@ class FlightState(TypedDict, total=False):
     destination: Optional[str]
     departure_date: Optional[str]
     return_date: Optional[str]
+    date_error: Optional[str]
  
     trip_type: Optional[
         Literal["one_way", "round_trip"]
@@ -71,7 +72,8 @@ class FlightState(TypedDict, total=False):
         "passenger_counter",
         "confirmation",
         "search",
-        "invalid_city"
+        "invalid_city",
+        "invalid_date"
     ]
  
     confirmation_status: Literal[
@@ -236,6 +238,35 @@ def route_city_validation(state: FlightState) -> str:
         return "invalid"
  
     return "valid"
+
+
+def validate_date(state: FlightState) -> dict:
+    """اگر extract_flight_request تاریخِ حرکت را نامعتبر یا گذشته تشخیص
+    داده باشد (date_error پر است)، دلیل را صریح به کاربر نشان می‌دهد
+    به‌جای اینکه فقط بی‌توضیح دوباره از او تاریخ بخواهد."""
+
+    date_error = state.get("date_error")
+
+    if date_error:
+        return {
+            **state,
+            "date_error": None,
+            "current_step": "invalid_date",
+            "assistant_message": date_error,
+            "ui_type": "chat_input",
+            "flights": [],
+        }
+
+    return {**state, "date_error": None}
+
+
+def route_date_validation(state: FlightState) -> str:
+    if state.get("current_step") == "invalid_date":
+        return "invalid"
+
+    return "valid"
+
+
 def ask_required_fields(state: FlightState) -> FlightState:
     missing_fields = []
  
@@ -480,6 +511,7 @@ graph_builder = StateGraph(FlightState)
 # نودهای بررسی
 graph_builder.add_node("non_flight_message",non_flight_message)
 graph_builder.add_node("validate_cities", validate_cities)
+graph_builder.add_node("validate_date", validate_date)
 graph_builder.add_node("check_required_fields", check_required_fields)
 graph_builder.add_node("check_passenger_status", check_passenger_status)
 graph_builder.add_node("validate_passenger_count", validate_passenger_count)
@@ -519,6 +551,14 @@ graph_builder.add_edge(
 graph_builder.add_conditional_edges(
     "validate_cities",
     route_city_validation,
+    {
+        "invalid": END,
+        "valid": "validate_date",
+    }
+)
+graph_builder.add_conditional_edges(
+    "validate_date",
+    route_date_validation,
     {
         "invalid": END,
         "valid": "check_required_fields",
