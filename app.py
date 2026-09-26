@@ -341,12 +341,36 @@ current_ui = st.session_state.get(
 print("current_ui",current_ui)
 
 
+def known_or_empty(value, render):
+    """اگه مقدار خالی/None یا «نامشخص» باشه، رشته‌ی خالی برمی‌گردونه؛
+    وگرنه render(value) رو صدا می‌زنه. برای این استفاده می‌شه که فیلدهای
+    نامشخص (مثل ظرفیت، نوع پرواز، کلاس پرواز و ...) اصلاً توی کارت پرواز
+    نمایش داده نشن، به‌جای این‌که به‌شکل «نامشخص» نشون داده بشن."""
+    if not value or str(value).strip() == "نامشخص":
+        return ""
+    return render(value)
+
+
 def render_flight_ticket(flight):
     plane_img = get_plane_image()
     airline_logo_data = get_airline_logo_base64(flight.get("airline_logo"))
     wheelchair_badge = ""
     if flight.get("wheelchair_note"):
         wheelchair_badge = f'<span>{flight["wheelchair_note"]}</span>'
+
+    flight_type_badge = known_or_empty(
+        flight.get("flight_type"), lambda v: f"<span>{v}</span>"
+    )
+    cabin_class_badge = known_or_empty(
+        flight.get("cabin_class"), lambda v: f"<span>{v}</span>"
+    )
+    aircraft_badge = known_or_empty(
+        flight.get("aircraft"), lambda v: f"<span>{v}</span>"
+    )
+    seat_info = known_or_empty(
+        flight.get("remaining_seats"),
+        lambda v: f'<div class="seat-info">ظرفیت: {v}</div>',
+    )
 
     st.markdown(
 f"""
@@ -373,9 +397,9 @@ src="{ airline_logo_data }" >
 
 <div class="flight-tags">
 
-<span>{flight["flight_type"]}</span>
-<span>{flight["cabin_class"]}</span>
-<span>{flight["aircraft"]}</span>
+{flight_type_badge}
+{cabin_class_badge}
+{aircraft_badge}
 {wheelchair_badge}
 
 </div>
@@ -442,9 +466,7 @@ src="{ airline_logo_data }" >
 </div>
 
 
-<div class="seat-info">
-ظرفیت: {flight["remaining_seats"]}
-</div>
+{seat_info}
 
 <a href="{flight.get("source_url", "#")}" target="_blank" class="select-flight">
 انتخاب پرواز

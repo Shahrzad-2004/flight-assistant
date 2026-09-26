@@ -169,6 +169,15 @@ AIRLINE_LOGOS = {
     "سروش ایر": {
             "logo":"airlines/SHR.svg"
         },
+    "رایمون": {
+            "logo":"airlines/RY.svg"
+        },
+    "آسمان": {
+            "logo":"airlines/AS.svg"
+        },
+    "آوا ایر": {
+            "logo":"airlines/AV.svg"
+        },
 }
 def select_departure_date(page, date_str):
 

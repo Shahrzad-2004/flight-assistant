@@ -162,6 +162,15 @@ AIRLINE_LOGOS = {
     "Soroush Air": {
             "logo":"airlines/SHR.svg"
         },
+    "رایمون": {
+            "logo":"airlines/RY.svg"
+        },
+    "آسمان": {
+            "logo":"airlines/AS.svg"
+        },
+    "آوا ایر": {
+            "logo":"airlines/AV.svg"
+        },
 }
 # ساختار متن هر کارت پرواز (یک div برگ بدون فرزند div) روی صفحه‌ی خارجی،
 # طبق نمونه‌ی واقعی مشاهده‌شده، همه چیز پشت‌سرهم و بدون جداکننده است، مثلاً:
