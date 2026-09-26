@@ -119,16 +119,35 @@ def select_cabin_class(cabin_value, cabin_label):
     graph_result = _run_graph_step(current_state, user_message)
 
     print("FINAL SESSION FLIGHT STATE:", st.session_state["flight_state"])
-def select_sort_by(sort_value, sort_label):
+def sort_flights_locally(sort_value):
+    """پروازهایی که از قبل توسط search_flights برگردانده شده‌اند را فقط
+    توی حافظه (session_state) دوباره مرتب می‌کند - بدون اسکرپ دوباره و
+    بدون صدا زدن flight_graph. برخلاف select_cabin_class/... این تابع
+    نه پیامی به چت اضافه می‌کند و نه گراف را دوباره اجرا می‌کند؛ چون
+    مرتب‌سازی صرفاً یک تعامل UI روی نتایجِ همین جستجوست."""
 
-    current_state = st.session_state["flight_state"].copy()
+    flight_state = st.session_state.get("flight_state", {}).copy()
+    flights = list(flight_state.get("flights", []))
 
-    # قرار دادن انتخاب کاربر در State
-    current_state["sort_by"] = sort_value
+    if sort_value == "cheapest":
+        flights.sort(key=lambda f: f.get("price_value", 0))
 
-    user_message = f"مرتب‌سازی بر اساس: {sort_label}"
+    elif sort_value == "priciest":
+        flights.sort(key=lambda f: f.get("price_value", 0), reverse=True)
 
-    _run_graph_step(current_state, user_message)
+    elif sort_value == "earliest":
+        flights.sort(key=lambda f: f.get("departure_time") or "99:99")
+
+    elif sort_value == "latest":
+        flights.sort(
+            key=lambda f: f.get("departure_time") or "00:00",
+            reverse=True
+        )
+
+    flight_state["flights"] = flights
+    flight_state["sort_by"] = sort_value
+
+    st.session_state["flight_state"] = flight_state
 def select_passenger_option(option):
 
     current_state = st.session_state["flight_state"].copy()

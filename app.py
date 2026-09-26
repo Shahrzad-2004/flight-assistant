@@ -30,7 +30,7 @@ from styles import (
 from ui_handlers import (
     scroll_to_bottom,
     select_cabin_class,
-    select_sort_by,
+    sort_flights_locally,
     select_passenger_option,
     save_passenger_counts,
     confirm_flight,
@@ -620,52 +620,6 @@ elif current_ui == "cabin_buttons":
     scroll_to_bottom()
     prompt = None
 
-elif current_ui == "sort_buttons":
-
-    st.markdown(
-    """
-    <div class="cabin-title">
-        پروازها بر چه اساسی مرتب شوند؟
-    </div>
-    """,
-    unsafe_allow_html=True
-    )
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.button(
-        "ارزان‌ترین",
-        key="cheapest_button",
-        use_container_width=True,
-        on_click=select_sort_by,
-        args=("cheapest", "ارزان‌ترین")
-    )
-
-    col2.button(
-        "زودترین",
-        key="earliest_button",
-        use_container_width=True,
-        on_click=select_sort_by,
-        args=("earliest", "زودترین")
-    )
-
-    col3.button(
-        "دیرترین",
-        key="latest_button",
-        use_container_width=True,
-        on_click=select_sort_by,
-        args=("latest", "دیرترین")
-    )
-
-    col4.button(
-        "گران‌ترین",
-        key="priciest_button",
-        use_container_width=True,
-        on_click=select_sort_by,
-        args=("priciest", "گران‌ترین")
-    )
-    scroll_to_bottom()
-    prompt = None
 elif current_ui == "confirmation":
 
     flight_state = st.session_state["flight_state"]
@@ -715,11 +669,6 @@ elif current_ui == "confirmation":
     <div class="confirmation-row">
     <span class="confirmation-label">کلاس پرواز:</span>
     <span class="confirmation-value">{get_cabin_label(flight_state.get("cabin_class"))}</span>
-    </div>
-
-    <div class="confirmation-row">
-    <span class="confirmation-label">مرتب‌سازی بر اساس:</span>
-    <span class="confirmation-value">{get_sort_label(flight_state.get("sort_by"))}</span>
     </div>
     </div>
 
@@ -780,6 +729,45 @@ elif current_ui == "search":
             </div>
             """,
             unsafe_allow_html=True
+        )
+
+        # مرتب‌سازی نتایج: برخلاف قبل، این دیگه یه سؤال توی گفتگو نیست؛
+        # کاربر همین‌جا روی لیست پروازهایی که همین الان گرفته شده، معیار
+        # مرتب‌سازی رو انتخاب می‌کنه و sort_flights_locally فقط همین
+        # لیست رو توی حافظه دوباره مرتب می‌کنه (بدون جستجوی دوباره).
+        current_sort = flight_state.get("sort_by")
+        sort_col1, sort_col2, sort_col3, sort_col4 = st.columns(4)
+
+        sort_col1.button(
+            "ارزان‌ترین" + (" ✓" if current_sort == "cheapest" else ""),
+            key="local_sort_cheapest",
+            use_container_width=True,
+            on_click=sort_flights_locally,
+            args=("cheapest",)
+        )
+
+        sort_col2.button(
+            "زودترین" + (" ✓" if current_sort == "earliest" else ""),
+            key="local_sort_earliest",
+            use_container_width=True,
+            on_click=sort_flights_locally,
+            args=("earliest",)
+        )
+
+        sort_col3.button(
+            "دیرترین" + (" ✓" if current_sort == "latest" else ""),
+            key="local_sort_latest",
+            use_container_width=True,
+            on_click=sort_flights_locally,
+            args=("latest",)
+        )
+
+        sort_col4.button(
+            "گران‌ترین" + (" ✓" if current_sort == "priciest" else ""),
+            key="local_sort_priciest",
+            use_container_width=True,
+            on_click=sort_flights_locally,
+            args=("priciest",)
         )
 
 
