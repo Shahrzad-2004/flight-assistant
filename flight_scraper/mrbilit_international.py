@@ -56,7 +56,7 @@ AIRLINE_LOGOS = {
         "logo":"airlines/ZG.svg"
     },
     "ایران ایرتور": {
-        "logo":"airlines/B9.svg"
+        "logo":"airlines/B99.svg"
     },
     "ایران ایر": {
         "logo":"airlines/B9.svg"
@@ -123,6 +123,9 @@ AIRLINE_LOGOS = {
         },
     "آوا ایر": {
             "logo":"airlines/AV.svg"
+        },
+    "فلای پرشیا": {
+            "logo":"airlines/FP.svg"
         },
 }
 
@@ -315,30 +318,60 @@ def _click_first_available(candidates, page, timeout, loose_after=0.4):
     return None
 
 
-def select_airport(page, city, placeholder, timeout=25000):
-    """انتخاب فرودگاه مبدأ/مقصد: کلیک روی فیلد، تایپ نام شهر، کلیک روی گزینه."""
+# --- تنظیمات پایداری پر کردن فرم ---
+FORM_ATTEMPTS = 2            # چند بار کل فرم (با باز کردن دوباره‌ی صفحه) تلاش شود
+VERIFY_CITY_INPUT_VALUE = True   # بعد از انتخاب شهر، پر بودن خودِ input هم چک شود.
+                                 # اگر سایت مقدار را داخل input نگه نمی‌دارد و لاگ
+                                 # مدام «مقدار داخل فیلد ثبت نشد» می‌دهد، False کن.
+REQUIRE_PASSENGERS = True    # شکست در تنظیم مسافران = شکست فرم (و تلاش مجدد)
+
+
+def wait_page_ready(page):
+    """صبر تا صفحه واقعاً آماده‌ی تعامل شود (نه فقط DOM لود شده)."""
+    try:
+        page.wait_for_load_state("networkidle", timeout=15000)
+    except PlaywrightTimeoutError:
+        pass  # بعضی سایت‌ها هیچ‌وقت idle نمی‌شن
+    page.get_by_placeholder("فرودگاه مبدأ", exact=True).wait_for(
+        state="visible", timeout=30000
+    )
+    page.wait_for_timeout(800)
+
+
+def select_airport(page, city, placeholder, timeout=25000, attempts=3):
+    """انتخاب فرودگاه مبدأ/مقصد: کلیک روی فیلد، تایپ واقعی نام شهر، کلیک روی گزینه.
+    با تلاش مجدد؛ گزینه‌ی دراپ‌داون خارجی «شهر+کد+کشور» است (مثل «تهرانIKAایران»)
+    پس همان لوکیتورهای _airport_option_locators استفاده می‌شوند."""
 
     field = page.get_by_placeholder(placeholder, exact=True)
-    field.click(timeout=timeout)
+    option_timeout = min(timeout, 10000)
 
-    try:
-        field.fill(city)
-    except Exception:
-        # اگر fill رویداد input را به‌درستی ایجاد نکرد، تایپ کاراکتر به کاراکتر
-        field.press_sequentially(city, delay=80)
+    for attempt in range(1, attempts + 1):
+        try:
+            field.click(timeout=timeout)
+            field.fill("")                              # پاک‌کردن مقدار قبلی
+            field.press_sequentially(city, delay=90)    # تایپ واقعی
 
-    candidates = _airport_option_locators(
-        page, city, PREFERRED_AIRPORT_CODES.get(city.strip())
-    )
-    chosen = _click_first_available(candidates, page, timeout)
+            candidates = _airport_option_locators(
+                page, city, PREFERRED_AIRPORT_CODES.get(city.strip())
+            )
+            chosen = _click_first_available(candidates, page, option_timeout)
 
-    if not chosen:
-        print(f"گزینه‌ی فرودگاه در مستربلیط خارجی پیدا نشد: {city}")
-        return False
+            if chosen:
+                print(f"[{placeholder}] گزینه‌ی انتخاب‌شده: {chosen}")
+                page.wait_for_timeout(500)
+                if not VERIFY_CITY_INPUT_VALUE or field.input_value().strip():
+                    return True                         # واقعاً ثبت شد
+                print(f"مقدار داخل فیلد «{placeholder}» ثبت نشد")
+        except PlaywrightTimeoutError:
+            pass
 
-    print(f"[{placeholder}] گزینه‌ی انتخاب‌شده: {chosen}")
-    page.wait_for_timeout(500)
-    return True
+        print(f"تلاش {attempt} برای «{city}» ناموفق بود")
+        page.wait_for_timeout(700)
+
+    print(f"گزینه‌ی فرودگاه در مستربلیط خارجی پیدا نشد: {city}")
+    return False
+
 
 
 # ---------------------------------------------------------------------------
@@ -466,29 +499,63 @@ def _increase_passenger(page, label, times):
 
 
 def select_passengers(page, adults, children, infants):
-    """تنظیم تعداد مسافران. حالت پیش‌فرض (۱ بزرگسال) نیازی به کلیک ندارد.
-    ⚠️ نحوه‌ی باز شدن پنل مسافران تأیید نشده؛ اگر برچسب بزرگسال دیده نشد
-    سعی می‌کنیم روی فیلدی که «مسافر» در متن/placeholder دارد کلیک کنیم."""
+    """باز کردن پنل مسافران و تنظیم تعداد بزرگسال/کودک/نوزاد.
+    ⚠️ نام دکمه‌های افزایش/کاهش را با DOM واقعی مستربلیط چک کن.
+    True یعنی تنظیم شد (یا نیازی به تغییر نبود)، False یعنی نشد."""
 
     extra_adults = max(0, adults - 1)
     if extra_adults == 0 and children == 0 and infants == 0:
-        return
+        return True  # پیش‌فرض، نیازی به کلیک نیست
 
-    adult_label = page.get_by_text(PASSENGER_LABELS["adult"]).locator(
-        "visible=true"
-    )
+    # باز کردن پنل با لوکیتور واقعی
+    passenger_input = page.get_by_placeholder("انتخاب تعداد (اختیاری)")
+    try:
+        passenger_input.wait_for(state="visible", timeout=8000)
+        passenger_input.click()
+        buttons = page.get_by_role("button")
+        buttons.nth(2).wait_for(state="visible", timeout=5000)
+    except PlaywrightTimeoutError:
+        print("پنل مسافران باز نشد")
+        return False
 
-    if adult_label.count() == 0:
-        opener = page.get_by_placeholder(re.compile("مسافر"))
-        if opener.count() == 0:
-            opener = page.get_by_text(re.compile("مسافر")).locator("visible=true")
-        if opener.count() > 0:
-            opener.first.click()
-            page.wait_for_timeout(500)
+    # هر نوع مسافر: (لوکیتور دکمه‌ی افزایش، تعداد کلیک)
+    increase_buttons = [
+        (buttons.nth(2), extra_adults),  # بزرگسال
+        (buttons.nth(4), children),      # کودک
+        (page.locator("div:nth-child(4) > .counter > button:nth-child(3)"), infants),  # نوزاد
+    ]
 
-    _increase_passenger(page, PASSENGER_LABELS["adult"], extra_adults)
-    _increase_passenger(page, PASSENGER_LABELS["child"], children)
-    _increase_passenger(page, PASSENGER_LABELS["infant"], infants)
+    for button, count in increase_buttons:
+        for _ in range(count):
+            try:
+                button.click(timeout=3000)
+            except PlaywrightTimeoutError:
+                print("کلیک روی دکمه‌ی افزایش مسافر ناموفق بود")
+                return False
+
+    return True
+
+
+def fill_form(page, origin, destination, departure_date, adults, children, infants, city_timeout):
+    """پر کردن کل فرم؛ اگر هر مرحله‌ی لازم شکست بخورد False برمی‌گرداند."""
+    if not select_airport(page, origin, "فرودگاه مبدأ", timeout=city_timeout):
+        print(f"مبدا در مستربلیط خارجی پیدا نشد: {origin}")
+        return False
+
+    if not select_airport(page, destination, "فرودگاه مقصد", timeout=city_timeout):
+        print(f"مقصد در مستربلیط خارجی پیدا نشد: {destination}")
+        return False
+
+    if not select_departure_date(page, departure_date):
+        print("انتخاب تاریخ در مستربلیط خارجی ناموفق بود")
+        return False
+
+    if not select_passengers(page, adults, children, infants):
+        print("تنظیم تعداد مسافران در مستربلیط خارجی ناموفق بود")
+        if REQUIRE_PASSENGERS:
+            return False
+
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -714,28 +781,27 @@ def search_mrbilit_international(
         page.set_default_timeout(city_timeout)
 
         try:
-            page.goto(
-                MRBILIT_INTERNATIONAL_URL,
-                wait_until="domcontentloaded",
-                timeout=90000,
-            )
+            for attempt in range(1, FORM_ATTEMPTS + 1):
+                try:
+                    page.goto(
+                        MRBILIT_INTERNATIONAL_URL,
+                        wait_until="domcontentloaded",
+                        timeout=90000,
+                    )
+                    wait_page_ready(page)
+                except PlaywrightTimeoutError:
+                    print(f"صفحه‌ی مستربلیط خارجی در تلاش {attempt} آماده نشد")
+                    continue
 
-            if not select_airport(page, origin, "فرودگاه مبدأ", timeout=city_timeout):
-                print(f"مبدا در مستربلیط خارجی پیدا نشد: {origin}")
+                if fill_form(
+                    page, origin, destination, departure_date,
+                    adults, children, infants, city_timeout,
+                ):
+                    break
+                print(f"پر کردن فرم در تلاش {attempt} ناموفق بود؛ صفحه رو دوباره باز می‌کنم")
+            else:
+                print("فرم مستربلیط خارجی بعد از چند تلاش پر نشد")
                 return []
-
-            if not select_airport(
-                page, destination, "فرودگاه مقصد", timeout=city_timeout
-            ):
-                print(f"مقصد در مستربلیط خارجی پیدا نشد: {destination}")
-                return []
-
-            if not select_departure_date(page, departure_date):
-                return []
-
-            select_passengers(
-                page, adults=adults, children=children, infants=infants
-            )
 
             if not click_search(page):
                 return []
@@ -794,9 +860,19 @@ def search_mrbilit_international(
                             "aircraft": info["aircraft"],
                             "wheelchair_note": info["wheelchair_note"],
                             "origin": origin,
+                            # کارت‌های مستربلیط (خارجی) نام شهر را جدا از کد
+                            # فرودگاه در متن نمی‌دهند (فقط کد ۳ حرفی با
+                            # AIRPORT_CODE_RE استخراج می‌شود)، پس برای
+                            # هم‌شکل ماندن با خروجی علی‌بابا (خارجی) که
+                            # origin_city/destination_city دارد، همان نام
+                            # شهری که کاربر برای جست‌وجو وارد کرده (و از
+                            # قبل به این تابع پاس داده شده) را استفاده
+                            # می‌کنیم.
+                            "origin_city": origin,
                             "origin_code": info["origin_code"],
                             "departure_time": info["departure_time"],
                             "destination": destination,
+                            "destination_city": destination,
                             "destination_code": info["destination_code"],
                             "arrival_time": info["arrival_time"],
                             "duration": info["duration"],

@@ -171,6 +171,9 @@ AIRLINE_LOGOS = {
     "آوا ایر": {
             "logo":"airlines/AV.svg"
         },
+    "فلای پرشیا": {
+            "logo":"airlines/FP.svg"
+        },
 }
 # ساختار متن هر کارت پرواز (یک div برگ بدون فرزند div) روی صفحه‌ی خارجی،
 # طبق نمونه‌ی واقعی مشاهده‌شده، همه چیز پشت‌سرهم و بدون جداکننده است، مثلاً:
@@ -567,6 +570,12 @@ def search_alibaba_international(
                         "arrival_time": info["arrival_time"],
                         "duration": info["duration"],
                         "baggage": info["baggage"],
+                        # صفحه‌ی خارجی علی‌بابا تعداد توقف را در همین الگوی
+                        # کارت (FLIGHT_CARD_PATTERN) نمایش نمی‌دهد؛ برای
+                        # هم‌شکل ماندن با خروجی مستربلیط (خارجی) که فیلد
+                        # stops دارد، اینجا هم کلید را با "نامشخص" پر
+                        # می‌کنیم تا هیچ منبعی این کلید را کم نداشته باشد.
+                        "stops": "نامشخص",
                         "remaining_seats": price_info.get("seats_left") or "نامشخص",
                         "price": f"{price_info['price']} تومان",
                         "price_value": price_value,

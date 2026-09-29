@@ -1771,21 +1771,37 @@ align-items:center;
     border-radius: 8px;
 }
 
+.flight-tags{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    justify-content:flex-end;
+
+    align-items:center;
+
+    gap:6px;
+
+    max-width:360px;
+
+}
+
 .flight-tags span{
 
     background:rgba(72,128,145,0.15);
 
     color:#488091;
 
-    padding:7px 18px;
+    padding:5px 12px;
 
     border-radius:20px;
 
-    font-size:14px;
-
-    margin-left:8px;
+    font-size:12px;
 
     font-weight:600;
+
+    white-space:nowrap;
 
 }
 

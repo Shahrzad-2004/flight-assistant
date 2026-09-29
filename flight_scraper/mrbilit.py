@@ -129,6 +129,9 @@ AIRLINE_LOGOS = {
     "آوا ایر": {
             "logo":"airlines/AV.svg"
         },
+    "فلای پرشیا": {
+            "logo":"airlines/FP.svg"
+        },
 }
  
  
@@ -188,78 +191,157 @@ def apply_sort(page, sort_by):
         print(f"تب مرتب‌سازی «{label}» توی مستربلیط پیدا نشد - رد شدیم")
  
  
-def select_city(page, city, placeholder, timeout=25000):
-    """انتخاب شهر مبدأ/مقصد بر اساس placeholder فیلد (مطابق ساختار فعلی مستربلیط).
+# --- تنظیمات پایداری پر کردن فرم ---
+FORM_ATTEMPTS = 2            # چند بار کل فرم (با باز کردن دوباره‌ی صفحه) تلاش شود
+VERIFY_CITY_INPUT_VALUE = True   # بعد از انتخاب شهر، پر بودن خودِ input هم چک شود.
+                                 # اگر سایت مقدار را داخل input نگه نمی‌دارد و لاگ
+                                 # مدام «مقدار داخل فیلد ثبت نشد» می‌دهد، False کن.
+REQUIRE_PASSENGERS = True    # شکست در تنظیم مسافران = شکست فرم (و تلاش مجدد)
+
+
+def wait_page_ready(page):
+    """صبر تا صفحه واقعاً آماده‌ی تعامل شود (نه فقط DOM لود شده)."""
+    try:
+        page.wait_for_load_state("networkidle", timeout=15000)
+    except PlaywrightTimeoutError:
+        pass  # بعضی سایت‌ها هیچ‌وقت idle نمی‌شن
+    page.get_by_placeholder("فرودگاه مبدأ", exact=True).wait_for(
+        state="visible", timeout=30000
+    )
+    page.wait_for_timeout(800)
+
+
+def select_city(page, city, placeholder, timeout=25000, attempts=3):
+    """انتخاب شهر مبدأ/مقصد با تایپ واقعی و تلاش مجدد.
     timeout به میلی‌ثانیه‌ست؛ روی نت کند مقدار بزرگ‌تری پاس بده."""
-    city_input = page.get_by_placeholder(placeholder, exact=True)
-    city_input.click(timeout=timeout)
-    city_input.fill(city)
- 
-    option = page.get_by_text(
-        re.compile(rf"^\s*{re.escape(city.strip())}\s*$")
-    ).first
- 
-    try:
-        option.wait_for(state="visible", timeout=timeout)
-        option.click(timeout=timeout)
-        return True
-    except PlaywrightTimeoutError:
-        print(f"گزینهٔ شهر پیدا نشد: {city}")
-        return False
- 
- 
-def select_departure_date(page, date_str):
-    """باز کردن تقویم و انتخاب تاریخ رفت.
-    ⚠️ ساختار تقویم mrbilit با alibaba فرق دارد؛ سلکتورهای زیر را با DOM واقعی تطبیق بده.
-    فعلاً از همان الگوی id-based کد اصلی استفاده شده."""
- 
+    field = page.get_by_placeholder(placeholder, exact=True)
+    pattern = re.compile(rf"^\s*{re.escape(city.strip())}\s*$")
+
+    for attempt in range(1, attempts + 1):
+        try:
+            field.click(timeout=timeout)
+            field.fill("")                              # پاک‌کردن مقدار قبلی
+            field.press_sequentially(city, delay=90)    # تایپ واقعی
+            option = page.get_by_text(pattern).locator("visible=true").first
+            option.wait_for(state="visible", timeout=8000)
+            option.click(timeout=5000)
+            page.wait_for_timeout(400)
+            if not VERIFY_CITY_INPUT_VALUE or field.input_value().strip():
+                return True                             # واقعاً ثبت شد
+            print(f"مقدار داخل فیلد «{placeholder}» ثبت نشد")
+        except PlaywrightTimeoutError:
+            pass
+        print(f"تلاش {attempt} برای «{city}» ناموفق بود")
+        page.wait_for_timeout(700)
+
+    return False
+
+
+def _date_cell_ids(jalali_date):
+    """id سلول روز در تقویم. طبق codegen ماه دو رقمی و روز بدون صفر اول است
+    (مثل «1405-07-5»)؛ برای اطمینان حالت روز دورقمی هم امتحان می‌شود."""
+    base = f"{jalali_date.year}-{jalali_date.month:02d}"
+    ids = [f"{base}-{jalali_date.day}"]
+    padded = f"{base}-{jalali_date.day:02d}"
+    if padded not in ids:
+        ids.append(padded)
+    return ids
+
+
+def select_departure_date(page, date_str, max_month_clicks=6):
+    """باز کردن تقویم و انتخاب روز رفت با id سلول.
+    اگر ماه موردنظر هنوز رندر نشده باشد، با دکمه‌ی «ماه بعد/بعدی» جلو می‌رود.
+    در صورت پیدا نشدن روز، False برمی‌گرداند (رد‌شدن بی‌صدا ندارد)."""
+
     jalali_date = convert_to_jalali(date_str)
-    month_name = JALALI_MONTHS[jalali_date.month]
     day = jalali_date.day
- 
-    print("MONTH:", month_name)
-    print("DAY:", day)
- 
+    month_name = JALALI_MONTHS[jalali_date.month]
+
     page.get_by_placeholder("رفت").first.click()
- 
-    date_id = f"{jalali_date.year}-{jalali_date.month:02d}-{jalali_date.day:02d}"
-    day_cell = page.locator(f'[id="{date_id}"]')
- 
-    try:
-        day_cell.get_by_text(str(day)).click()
-    except PlaywrightTimeoutError:
+
+    ids = _date_cell_ids(jalali_date)
+    cell = page.locator(", ".join(f'[id="{i}"]' for i in ids)).locator(
+        "visible=true"
+    )
+
+    for _ in range(max_month_clicks + 1):
+        try:
+            cell.first.wait_for(state="visible", timeout=2500)
+            break
+        except PlaywrightTimeoutError:
+            next_button = page.get_by_role(
+                "button", name=re.compile(r"ماه بعد|بعدی")
+            )
+            if next_button.count() == 0:
+                print(
+                    f"روز {day} {month_name} در تقویم دیده نشد و دکمه‌ی ماه بعد هم "
+                    "پیدا نشد"
+                )
+                return False
+            next_button.first.click()
+            page.wait_for_timeout(400)
+    else:
         print(f"روز {day} از ماه {month_name} در تقویم پیدا نشد")
- 
- 
+        return False
+
+    try:
+        cell.first.get_by_text(str(day), exact=True).first.click(timeout=3000)
+    except PlaywrightTimeoutError:
+        # اگر متن روز جدا نبود، خود سلول را کلیک کن
+        cell.first.click()
+
+    return True
+
+
 def select_passengers(page, adults, children, infants):
     """باز کردن پنل مسافران و تنظیم تعداد بزرگسال/کودک/نوزاد.
-    ⚠️ نام دکمه‌های افزایش/کاهش را با DOM واقعی مستربلیط چک کن."""
- 
-    passenger_input = page.get_by_role("textbox", name="مسافران")
-    if passenger_input.count() == 0:
-        return
- 
-    passenger_input.click()
- 
-    add_buttons = page.get_by_role("button", name="افزودن")
- 
-    if add_buttons.count() < 3:
-        return
- 
-    adult_add = add_buttons.first
-    child_add = add_buttons.nth(1)
-    infant_add = add_buttons.nth(2)
- 
+    ⚠️ نام دکمه‌های افزایش/کاهش را با DOM واقعی مستربلیط چک کن.
+    True یعنی تنظیم شد (یا نیازی به تغییر نبود)، False یعنی نشد."""
+
+    if adults == 1 and children == 0 and infants == 0:
+        return True  # پیش‌فرض، نیازی به کلیک نیست
+
+    passenger_input = page.get_by_placeholder("انتخاب تعداد (اختیاری)")
+    try:
+        passenger_input.wait_for(state="visible", timeout=8000)
+        passenger_input.click()
+        add_buttons = page.get_by_role("button")
+        add_buttons.nth(2).wait_for(state="visible", timeout=5000)
+    except PlaywrightTimeoutError:
+        print("پنل مسافران باز نشد")
+        return False
+
     for _ in range(max(0, adults - 1)):
-        adult_add.click()
- 
+        add_buttons.nth(2).click()
     for _ in range(children):
-        child_add.click()
- 
+        add_buttons.nth(4).click()
     for _ in range(infants):
-        infant_add.click()
- 
- 
+        page.locator("div:nth-child(4) > .counter > button:nth-child(3)").click()
+    return True
+
+
+def fill_form(page, origin, destination, departure_date, adults, children, infants, city_timeout):
+    """پر کردن کل فرم؛ اگر هر مرحله‌ی لازم شکست بخورد False برمی‌گرداند."""
+    if not select_city(page, origin, "فرودگاه مبدأ", timeout=city_timeout):
+        print(f"شهر مبدا در مستربلیط پیدا نشد: {origin}")
+        return False
+
+    if not select_city(page, destination, "فرودگاه مقصد", timeout=city_timeout):
+        print(f"شهر مقصد در مستربلیط پیدا نشد: {destination}")
+        return False
+
+    if not select_departure_date(page, departure_date):
+        print("انتخاب تاریخ در مستربلیط ناموفق بود")
+        return False
+
+    if not select_passengers(page, adults, children, infants):
+        print("تنظیم تعداد مسافران در مستربلیط ناموفق بود")
+        if REQUIRE_PASSENGERS:
+            return False
+
+    return True
+
+
 def load_all_flights(page):
     """اسکرول تا انتهای صفحه برای بارگذاری همه‌ی پروازها (لود تنبل / بی‌نهایت).
     به‌جای کلاس خاصِ کارت (که روی مستربلیط معلوم نبود)، از شمارش خودِ قیمت‌ها استفاده می‌کنیم."""
@@ -299,22 +381,27 @@ def search_mrbilit(
         page.set_default_timeout(city_timeout)
  
         try:
-            page.goto(
-                "https://mrbilit.com/plane-ticket",
-                wait_until="domcontentloaded",
-                timeout=90000,
-            )
- 
-            if not select_city(page, origin, "فرودگاه مبدأ", timeout=city_timeout):
-                print(f"شهر مبدا در مستربلیط پیدا نشد: {origin}")
+            for attempt in range(1, FORM_ATTEMPTS + 1):
+                try:
+                    page.goto(
+                        "https://mrbilit.com/plane-ticket",
+                        wait_until="domcontentloaded",
+                        timeout=90000,
+                    )
+                    wait_page_ready(page)
+                except PlaywrightTimeoutError:
+                    print(f"صفحه‌ی مستربلیط در تلاش {attempt} آماده نشد")
+                    continue
+
+                if fill_form(
+                    page, origin, destination, departure_date,
+                    adults, children, infants, city_timeout,
+                ):
+                    break
+                print(f"پر کردن فرم در تلاش {attempt} ناموفق بود؛ صفحه رو دوباره باز می‌کنم")
+            else:
+                print("فرم مستربلیط بعد از چند تلاش پر نشد")
                 return []
- 
-            if not select_city(page, destination, "فرودگاه مقصد", timeout=city_timeout):
-                print(f"شهر مقصد در مستربلیط پیدا نشد: {destination}")
-                return []
- 
-            select_departure_date(page, departure_date)
-            select_passengers(page, adults=adults, children=children, infants=infants)
  
             page.get_by_role("button", name=re.compile("جستجو")).click()
             page.wait_for_timeout(5000)
