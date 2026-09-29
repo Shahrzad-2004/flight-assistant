@@ -178,6 +178,9 @@ AIRLINE_LOGOS = {
     "آوا ایر": {
             "logo":"airlines/AV.svg"
         },
+    "فلای پرشیا": {
+            "logo":"airlines/FP.svg"
+        },
 }
 def select_departure_date(page, date_str):
 
