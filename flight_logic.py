@@ -30,6 +30,7 @@ def create_flight_extractor():
         model="qwen3.8-flash",
         api_key=api_key,
         base_url="https://api.avalai.ir/v1",
+        max_retries=2,
         temperature=0
     )
     #ساختار پاسخ ال ال ام

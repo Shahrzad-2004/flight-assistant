@@ -8,9 +8,9 @@ from concurrent.futures import TimeoutError as FuturesTimeoutError
 # همین یک SEARCH_GRACE_SECONDS هم داریم که به‌جای cancel کردن بی‌فایده‌ی
 # تسک‌های درحال‌اجرا (که اصلاً واقعاً متوقفشون نمی‌کنه)، صبر می‌کنیم تا
 # نتیجه‌شون - اگه نزدیکه - از دست نره.
-SEARCH_TIMEOUT_SECONDS = 20
+SEARCH_TIMEOUT_SECONDS = 30
 # مهلت اضافه بعد از SEARCH_TIMEOUT_SECONDS. مجموع این دو، سقف کل انتظاره.
-SEARCH_GRACE_SECONDS = 20
+SEARCH_GRACE_SECONDS = 30
 
 # اگر True باشد، تک‌تک پروازهای برگشتی هر منبع چاپ می‌شود (برای دیباگ)
 DEBUG_PRINT_FLIGHTS = False

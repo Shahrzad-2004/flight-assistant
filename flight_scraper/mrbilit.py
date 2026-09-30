@@ -289,7 +289,8 @@ def select_departure_date(page, date_str, max_month_clicks=6):
     except PlaywrightTimeoutError:
         # اگر متن روز جدا نبود، خود سلول را کلیک کن
         cell.first.click()
-
+    confirm_button = page.get_by_role("button", name="تأیید")
+    confirm_button.click()
     return True
 
 
