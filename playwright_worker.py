@@ -11,7 +11,7 @@ _lock = threading.Lock()
 # اجرا بشن. عدد رو کمی بزرگ‌تر گرفتیم تا چند جستجوی هم‌زمان از کاربرهای
 # مختلف هم صف نشن. (هر worker یک پنجره‌ی Chrome باز می‌کنه، پس بی‌جهت
 # زیادش نکن.) برای تغییر بدون دست‌بردن به کد: PLAYWRIGHT_MAX_WORKERS
-MAX_WORKERS = int(os.environ.get("PLAYWRIGHT_MAX_WORKERS", 2))
+MAX_WORKERS = int(os.environ.get("PLAYWRIGHT_MAX_WORKERS", 4))
 
 
 def get_playwright_executor():

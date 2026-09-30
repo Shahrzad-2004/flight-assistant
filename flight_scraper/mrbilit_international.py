@@ -432,71 +432,14 @@ def select_departure_date(page, date_str, max_month_clicks=6):
     except PlaywrightTimeoutError:
         # اگر متن روز جدا نبود، خود سلول را کلیک کن
         cell.first.click()
-
+    confirm_button = page.get_by_role("button", name="تأیید")
+    confirm_button.click()
     return True
 
 
 # ---------------------------------------------------------------------------
 # مسافران
 # ---------------------------------------------------------------------------
-
-
-def _read_counter(row):
-    """عدد شمارنده‌ی یک ردیف مسافر (المانِ برگی که فقط رقم دارد)؛ None اگر پیدا نشد."""
-    counter = row.locator(
-        "xpath=.//*[not(*)][normalize-space() and "
-        "translate(normalize-space(), '0123456789۰۱۲۳۴۵۶۷۸۹', '')='']"
-    )
-    if counter.count() == 0:
-        return None
-    try:
-        return int(normalize_digits(counter.first.inner_text().strip()))
-    except ValueError:
-        return None
-
-
-def _increase_passenger(page, label, times):
-    """روی ردیفی که برچسبش label است، «times» بار تعداد را زیاد می‌کند.
-
-    ردیف = نزدیک‌ترین والدِ برچسب که دکمه دارد. چون نمی‌دانیم «+» اولین دکمه
-    است یا دومی (RTL)، اولین کلیک را روی دکمه‌ی آخر می‌زنیم و از تغییر
-    شمارنده می‌فهمیم درست بوده یا نه؛ اگر نه، دکمه‌ی اول را «+» می‌گیریم.
-    """
-    if times <= 0:
-        return True
-
-    label_el = page.get_by_text(label).locator("visible=true").first
-    try:
-        label_el.wait_for(state="visible", timeout=4000)
-    except PlaywrightTimeoutError:
-        print(f"برچسب مسافر «{label}» در پنل پیدا نشد")
-        return False
-
-    row = label_el.locator("xpath=ancestor::div[.//button][1]")
-    buttons = row.get_by_role("button")
-
-    if buttons.count() != 2:
-        print(
-            f"ردیف «{label}» {buttons.count()} دکمه دارد (انتظار ۲ تا) - "
-            "نمی‌توانم «+» را مطمئن تشخیص دهم"
-        )
-        return False
-
-    plus = buttons.last
-    before = _read_counter(row)
-    plus.click()
-    after = _read_counter(row)
-
-    if before is not None and after is not None and after <= before:
-        # دکمه‌ی آخر «-» بوده؛ پس «+» دکمه‌ی اول است
-        plus = buttons.first
-        plus.click()
-
-    for _ in range(times - 1):
-        plus.click()
-
-    return True
-
 
 def select_passengers(page, adults, children, infants):
     """باز کردن پنل مسافران و تنظیم تعداد بزرگسال/کودک/نوزاد.
