@@ -9,6 +9,7 @@ from chat_database import create_tables, save_message,list_sessions
 from authentication import handle_google_callback, get_google_auth_url
 from user_database import create_users_table,get_user_by_id
 from cookie_manager import cookies
+from flight_graph import detect_cabin_key
 
 
 from styles import (
@@ -29,7 +30,6 @@ from styles import (
 )
 from ui_handlers import (
     scroll_to_bottom,
-    select_cabin_class,
     sort_flights_locally,
     select_passenger_option,
     save_passenger_counts,
@@ -110,6 +110,12 @@ def to_jalali(date_str):
     except (ValueError, TypeError):
         return str(date_str)
 
+CABIN_FILTER_OPTIONS = [
+    ("economy", "اکونومی"),
+    ("business", "بیزینس"),
+    ("first", "فرست کلاس"),
+    ("unspecified", "اهمیت ندارد"),
+]
 def get_cabin_label(cabin_class):
 
     cabin_labels = {
@@ -119,10 +125,7 @@ def get_cabin_label(cabin_class):
         "unspecified": "اهمیت ندارد"
     }
 
-    return cabin_labels.get(
-        cabin_class,
-        "-"
-    )
+    return cabin_labels.get(cabin_class, "همه کلاس‌ها")
 
 def get_sort_label(sort_by):
 
@@ -362,7 +365,7 @@ def render_flight_ticket(flight):
         flight.get("flight_type"), lambda v: f"<span>{v}</span>"
     )
     cabin_class_badge = known_or_empty(
-        flight.get("cabin_class"), lambda v: f"<span>{v}</span>"
+        flight.get("cabin_class"), lambda v: f'<span class="cabin-tag">{v}</span>'
     )
     aircraft_badge = known_or_empty(
         flight.get("aircraft"), lambda v: f"<span>{v}</span>"
@@ -573,52 +576,6 @@ elif current_ui == "passenger_counter":
     scroll_to_bottom()
     prompt = None
 
-elif current_ui == "cabin_buttons":
-
-    st.markdown(
-    """
-    <div class="cabin-title">
-        کلاس پرواز را انتخاب کنید:
-    </div>
-    """,
-    unsafe_allow_html=True
-    )
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.button(
-        "اکونومی",
-        key="economy_button",
-        use_container_width=True,
-        on_click=select_cabin_class,
-        args=("economy", "اکونومی")
-    )
-
-    col2.button(
-        "بیزینس",
-        key="business_button",
-        use_container_width=True,
-        on_click=select_cabin_class,
-        args=("business", "بیزینس")
-    )
-
-    col3.button(
-        "فرست‌ کلاس",
-        key="first_button",
-        use_container_width=True,
-        on_click=select_cabin_class,
-        args=("first", "فرست‌ کلاس")
-    )
-
-    col4.button(
-        "اهمیت ندارد",
-        key="unspecified_button",
-        use_container_width=True,
-        on_click=select_cabin_class,
-        args=("unspecified", "اهمیت ندارد")
-    )
-    scroll_to_bottom()
-    prompt = None
 
 elif current_ui == "confirmation":
 
@@ -730,11 +687,6 @@ elif current_ui == "search":
             """,
             unsafe_allow_html=True
         )
-
-        # مرتب‌سازی نتایج: برخلاف قبل، این دیگه یه سؤال توی گفتگو نیست؛
-        # کاربر همین‌جا روی لیست پروازهایی که همین الان گرفته شده، معیار
-        # مرتب‌سازی رو انتخاب می‌کنه و sort_flights_locally فقط همین
-        # لیست رو توی حافظه دوباره مرتب می‌کنه (بدون جستجوی دوباره).
         current_sort = flight_state.get("sort_by")
         sort_col1, sort_col2, sort_col3, sort_col4 = st.columns(4)
 
@@ -769,10 +721,38 @@ elif current_ui == "search":
             on_click=sort_flights_locally,
             args=("priciest",)
         )
+        counts = {}
+        for f in flights:
+            k = detect_cabin_key(f)
+            counts[k] = counts.get(k, 0) + 1
 
+        present = [(k, l) for k, l in CABIN_FILTER_OPTIONS if k in counts]
+        preferred = flight_state.get("cabin_class")
+        search_id = flight_state.get("search_id", "")
 
-    for flight in flights:
-        render_flight_ticket(flight)
+        # اگر کاربر کلاسی گفته و در نتایج هست، فقط همان تیک می‌خورد؛ وگرنه همه
+        preferred_available = preferred in counts
+        if preferred and preferred != "unspecified" and not preferred_available:
+            st.info("پروازی با کلاس درخواستی پیدا نشد؛ سایر کلاس‌ها نمایش داده می‌شوند.")
+
+        st.markdown('<div class="cabin-title">نوع پرواز:</div>', unsafe_allow_html=True)
+        cols = st.columns(len(present))
+        selected = set()
+        for col, (key, label) in zip(cols, present):
+            default = (not preferred_available) or preferred == key
+            if col.checkbox(
+                f"{label} ({counts[key]})",
+                value=default,
+                key=f"cabin_filter_{search_id}_{key}",
+            ):
+                selected.add(key)
+
+        visible = [f for f in flights if detect_cabin_key(f) in selected]
+
+        if not visible:
+            st.warning("حداقل یک نوع پرواز را انتخاب کنید.")
+        for flight in visible:
+            render_flight_ticket(flight)
 
 
     scroll_to_bottom()

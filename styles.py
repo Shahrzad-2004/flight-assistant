@@ -546,6 +546,72 @@ def inject_cabin_and_passenger_style() -> None:
         gap: 12px !important;
     }
     
+
+    /* ===== دکمه‌های معیار مرتب‌سازی (صفحه نتایج): شیشه‌ای ===== */
+
+    [data-testid="stHorizontalBlock"]:has([class*="st-key-local_sort_"]) {
+        direction: rtl !important;
+        flex-direction: row-reverse !important;
+        gap: 10px !important;
+    }
+
+    [class*="st-key-local_sort_"] button {
+        width: 100% !important;
+        min-height: 48px !important;
+        background: rgba(255, 255, 255, 0.45) !important;
+        backdrop-filter: blur(14px) !important;
+        -webkit-backdrop-filter: blur(14px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.75) !important;
+        border-radius: 15px !important;
+        box-shadow:
+            0 5px 18px rgba(31, 41, 55, 0.10),
+            inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+        color: #1f2937 !important;
+        font-family: 'Vazirmatn', sans-serif !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        direction: rtl !important;
+        text-align: center !important;
+        transition: all 0.25s ease !important;
+    }
+
+    [class*="st-key-local_sort_"] button p {
+        font-family: 'Vazirmatn', sans-serif !important;
+        color: #1f2937 !important;
+        direction: rtl !important;
+        text-align: center !important;
+    }
+
+    [class*="st-key-local_sort_"] button:hover {
+        background: rgba(37, 99, 235, 0.16) !important;
+        border-color: rgba(37, 99, 235, 0.45) !important;
+        box-shadow:
+            0 8px 22px rgba(37, 99, 235, 0.16),
+            inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    [class*="st-key-local_sort_"] button:active {
+        transform: translateY(0) scale(0.98) !important;
+    }
+
+    /* ===== چک‌لیست نوع (کلاس) پرواز: متن مشکی ===== */
+
+    [class*="st-key-cabin_filter_"],
+    [class*="st-key-cabin_filter_"] label,
+    [class*="st-key-cabin_filter_"] p,
+    [class*="st-key-cabin_filter_"] span {
+        color: #000000 !important;
+        font-family: 'Vazirmatn', sans-serif !important;
+        font-weight: 600 !important;
+        direction: rtl !important;
+    }
+
+    /* تگ کلاس پرواز داخل کارت بلیط: مشکی */
+    .flight-tags span.cabin-tag {
+        color: #000000 !important;
+    }
+
     </style>
     """,
         unsafe_allow_html=True
@@ -726,7 +792,23 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
     }}
 
     {hide_sidebar_rule}
+    /* سایدبار سمت راست */
+    [data-testid="stAppViewContainer"]{{
+        flex-direction:row-reverse !important;
+    }}
 
+    [data-testid="stSidebar"]{{
+        border-right:none !important;
+        border-left:1px solid rgba(0,0,0,.08) !important;
+    }}
+
+    /* در موبایل سایدبار fixed است و از چپ باز می‌شود؛ به راست ببرش */
+    @media (max-width: 768px){{
+        [data-testid="stSidebar"]{{
+            left:auto !important;
+            right:0 !important;
+        }}
+    }}
     /* ظاهر کلی نوار کناری */
     [data-testid="stSidebar"]{{
         background:rgba(255,255,255,.92) !important;
@@ -757,7 +839,8 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
     .st-key-sidebar_toggle_button button{{
         position:fixed !important;
         top:14px;
-        left:14px;
+        right:14px;
+        left:auto;
         z-index:999999 !important;
 
         width:46px !important;
@@ -834,7 +917,7 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         gap:6px !important;
         align-items:center !important;
         direction:rtl !important;
-        flex-direction:row-reverse !important;
+        flex-direction:row !important;
     }}
 
     /* کارت واحد هر گفتگو: نام + سه‌نقطه (و در صورت باز بودن،
@@ -872,25 +955,25 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         border-color:#ef4444 !important;
     }}
 
-    /* حذف کامل کادر آبی (گرادیانت تیل) دور دکمه حذف - فقط خود دکمه
-       می‌ماند. اندازه و جای پاپ‌آپ (padding و ...) دست‌نخورده است */
-    div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]),
-    div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]) > div,
-    [data-testid="stPopoverBody"]:has([class*="st-key-delete_option_"]),
-    div[role="dialog"]:has([class*="st-key-delete_option_"]){{
-        background:transparent !important;
-        border:none !important;
-        box-shadow:none !important;
-        backdrop-filter:none !important;
-        -webkit-backdrop-filter:none !important;
+div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]),
+div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]) > div,
+[data-testid="stPopoverBody"]:has([class*="st-key-delete_option_"]),
+div[role="dialog"]:has([class*="st-key-delete_option_"]){{
+background:rgba(255,255,255,.55) !important;
+backdrop-filter:blur(14px) !important;
+-webkit-backdrop-filter:blur(14px) !important;
+border:1px solid rgba(255,255,255,.75) !important;
+box-shadow:0 8px 22px rgba(31,41,55,.14) !important;
+box-sizing:border-box !important;
+min-width:0 !important;
+width:120px !important;
+max-width:120px !important;
+translate: -100px 0px !important;
+}}
 
-        /* کوتاه‌تر شدن عرض (قبلاً حدود ۳۲۰px بود). لبه‌ی چپ پاپ‌آپ
-           همان قبلی می‌ماند و فقط از سمت راست کوتاه می‌شود */
-        box-sizing:border-box !important;
-        min-width:0 !important;
-        width:140px !important;
-        max-width:140px !important;
-    }}
+div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]) *{{
+background-color:transparent !important;
+}}
 
     /* حذف فلش کنار دکمه popover */
     [data-testid="stPopover"] button svg {{
@@ -1421,14 +1504,12 @@ def inject_auth_style() -> None:
         }
 
 
-        /* دکمه ورود / ثبت نام مهمان */
-
 /* دکمه ورود / ثبت نام مهمان */
 
 .guest-login-fixed{
     position:fixed !important;
     top:20px !important;
-    right:30px !important;
+    left:30px !important;
     z-index:999999 !important;
 
     display:flex !important;
