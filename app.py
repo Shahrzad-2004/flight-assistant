@@ -735,18 +735,26 @@ elif current_ui == "search":
         if preferred and preferred != "unspecified" and not preferred_available:
             st.info("پروازی با کلاس درخواستی پیدا نشد؛ سایر کلاس‌ها نمایش داده می‌شوند.")
 
-        st.markdown('<div class="cabin-title">نوع پرواز:</div>', unsafe_allow_html=True)
-        cols = st.columns(len(present))
-        selected = set()
-        for col, (key, label) in zip(cols, present):
-            default = (not preferred_available) or preferred == key
-            if col.checkbox(
-                f"{label} ({counts[key]})",
-                value=default,
-                key=f"cabin_filter_{search_id}_{key}",
-            ):
-                selected.add(key)
+        st.markdown(
+            '<div class="cabin-title">نوع پرواز:</div>',
+            unsafe_allow_html=True
+        )
 
+# فیلترهای کلاس پرواز — RTL
+        cols = st.columns(len(present))
+
+        selected = set()
+
+        for col, (key, label) in zip(reversed(cols), present):
+            default = (not preferred_available) or preferred == key
+
+            with col:
+                if st.checkbox(
+                    f"{label}  ({counts[key]})",
+                    value=default,
+                    key=f"cabin_filter_{search_id}_{key}",
+                ):
+                    selected.add(key)
         visible = [f for f in flights if detect_cabin_key(f) in selected]
 
         if not visible:
@@ -755,7 +763,6 @@ elif current_ui == "search":
             render_flight_ticket(flight)
 
 
-    scroll_to_bottom()
 
     prompt = None
 else:

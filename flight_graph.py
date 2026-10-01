@@ -411,11 +411,11 @@ def search_flights(state: FlightState) -> FlightState:
         adults=state.get("adults", 1),
         children=state.get("children", 0),
         infants=state.get("infants", 0),
-        cabin_class=state.get("cabin_class"),
+
         sort_by=state.get("sort_by")
     )
- 
- 
+
+    
     max_price = state.get("max_price_toman")
     if max_price:
         flights = [
