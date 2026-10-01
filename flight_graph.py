@@ -3,6 +3,7 @@ from langgraph.graph import StateGraph, START, END
 from flight_scraper.scraper_manager import search_all_flights
 from flight_scraper.alibaba import IATA_CODES
 from city_matching import resolve_city
+import uuid
 from flight_scraper.alibaba_international import (
     INTERNATIONAL_IATA_CODES,
     INTERNATIONAL_ORIGIN_CITIES,
@@ -21,23 +22,7 @@ class FlightState(TypedDict, total=False):
     departure_date: Optional[str]
     date_error: Optional[str]
  
-    # کلاس پرواز
-    cabin_class: Optional[
-        Literal[
-            "economy",
-            "business",
-            "first",
-            "unspecified"
-        ]
-    ]
-    sort_by: Optional[
-        Literal[
-            "cheapest",
-            "earliest",
-            "latest",
-            "priciest"
-        ]
-    ]
+    search_id: str
  
     max_price_toman: Optional[int]
  
@@ -61,7 +46,6 @@ class FlightState(TypedDict, total=False):
  
     ui_type: Literal[
         "chat_input",
-        "cabin_buttons",
         "passenger_choice",
         "passenger_counter",
         "confirmation",
@@ -96,7 +80,6 @@ def route_flight_request(state):
             "ask_passenger_choice",
             "enter_passengers",
             "ask_required_fields",
-            "ask_cabin_class",
             "confirmation"
         ]
     ):
@@ -350,28 +333,6 @@ def ask_valid_passenger_count(state: FlightState) -> FlightState:
         "adults": None,
     }
 
-
-# =========================================================
-# 3) بررسی کلاس پرواز
-# =========================================================
-def check_cabin_class(state: FlightState) -> dict:
-    """بررسی می‌کند کلاس پرواز مشخص شده یا نه."""
-    return {}
- 
- 
-def route_cabin_class(state: FlightState) -> str:
-    if state.get("cabin_class") is None:
-        return "missing"
- 
-    return "complete"
- 
- 
-def ask_cabin_class(state: FlightState) -> FlightState:
-    return {
-        "current_step": "ask_cabin_class",
-        "assistant_message": "کدام کلاس پروازی را ترجیح می‌دهید؟",
-        "ui_type": "cabin_buttons"
-    }
  
 # معیار مرتب‌سازی دیگر توی گفتگو پرسیده نمی‌شه؛ کاربر بعد از دیدن
 # نتایج جستجو، از داخل خودِ UI سایت (روی همون لیست پروازهای برگشته)
@@ -427,7 +388,13 @@ ALIBABA_SORT_TABS = {
     "priciest": "گران‌ترین",
 }
  
- 
+def detect_cabin_key(flight: dict) -> str:
+    """کلاس یک بلیط را از متن cabin_class آن تشخیص می‌دهد."""
+    text = flight.get("cabin_class") or ""
+    for key, keyword in CABIN_CLASS_KEYWORDS.items():
+        if keyword in text:
+            return key
+    return "other"
 def search_flights(state: FlightState) -> FlightState:
  
     flights = search_all_flights(
@@ -440,15 +407,6 @@ def search_flights(state: FlightState) -> FlightState:
         sort_by=state.get("sort_by")
     )
  
-    preferred_cabin = state.get("cabin_class")
-    if preferred_cabin and preferred_cabin != "unspecified":
-            keyword = CABIN_CLASS_KEYWORDS.get(preferred_cabin)
-            if keyword:
-                flights = [
-                    flight
-                    for flight in flights
-                    if keyword in (flight.get("cabin_class") or "")
-                ]
  
     max_price = state.get("max_price_toman")
     if max_price:
@@ -481,7 +439,8 @@ def search_flights(state: FlightState) -> FlightState:
  
         "ui_type": "search",
  
-        "flights": flights
+        "flights": flights,
+        "search_id": uuid.uuid4().hex,
     }
  
  
@@ -495,7 +454,6 @@ graph_builder.add_node("validate_date", validate_date)
 graph_builder.add_node("check_required_fields", check_required_fields)
 graph_builder.add_node("check_passenger_status", check_passenger_status)
 graph_builder.add_node("validate_passenger_count", validate_passenger_count)
-graph_builder.add_node("check_cabin_class", check_cabin_class)
 graph_builder.add_node("check_confirmation_status", check_confirmation_status)
  
 # نودهای رابط کاربری / عملیات
@@ -504,7 +462,6 @@ graph_builder.add_node("ask_required_fields", ask_required_fields)
 graph_builder.add_node("ask_passenger_choice", ask_passenger_choice)
 graph_builder.add_node("enter_passengers", enter_passengers)
 graph_builder.add_node("ask_valid_passenger_count", ask_valid_passenger_count)
-graph_builder.add_node("ask_cabin_class", ask_cabin_class)
 graph_builder.add_node("show_confirmation", show_confirmation)
 graph_builder.add_node("edit_request", edit_request)
 graph_builder.add_node("search_flights", search_flights)
@@ -570,20 +527,10 @@ graph_builder.add_conditional_edges(
     route_passenger_count,
     {
         "invalid": "ask_valid_passenger_count",
-        "valid": "check_cabin_class"
+        "valid": "check_confirmation_status"
     }
 )
  
- 
-# کلاس پرواز
-graph_builder.add_conditional_edges(
-    "check_cabin_class",
-    route_cabin_class,
-    {
-        "missing": "ask_cabin_class",
-        "complete": "check_confirmation_status"
-    }
-)
  
  
 # وضعیت تأیید
@@ -603,7 +550,6 @@ graph_builder.add_edge("ask_required_fields", END)
 graph_builder.add_edge("ask_passenger_choice", END)
 graph_builder.add_edge("enter_passengers", END)
 graph_builder.add_edge("ask_valid_passenger_count", END)
-graph_builder.add_edge("ask_cabin_class", END)
 graph_builder.add_edge("show_confirmation", END)
 graph_builder.add_edge("edit_request", END)
 graph_builder.add_edge("search_flights", END)

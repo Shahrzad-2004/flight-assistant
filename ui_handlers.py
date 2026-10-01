@@ -10,8 +10,9 @@ import traceback
 import streamlit as st
 import streamlit.components.v1 as components
 
+
 from cookie_manager import cookies
-from flight_graph import flight_graph
+from flight_graph import flight_graph,detect_cabin_key
 from chat_database import save_message, load_messages, delete_session
 WELCOME_MESSAGE = (
     "سلام من دستیارهوشمند رزرو بلیط هستم. "
@@ -106,19 +107,7 @@ def scroll_to_bottom():
     )
 
 
-# ثبت انتخاب کلاس پرواز
-def select_cabin_class(cabin_value, cabin_label):
 
-    current_state = st.session_state["flight_state"].copy()
-
-    # قرار دادن انتخاب کاربر در State
-    current_state["cabin_class"] = cabin_value
-
-    user_message = f"کلاس پرواز: {cabin_label}"
-
-    graph_result = _run_graph_step(current_state, user_message)
-
-    print("FINAL SESSION FLIGHT STATE:", st.session_state["flight_state"])
 def sort_flights_locally(sort_value):
     """پروازهایی که از قبل توسط search_flights برگردانده شده‌اند را فقط
     توی حافظه (session_state) دوباره مرتب می‌کند - بدون اسکرپ دوباره و

@@ -126,8 +126,10 @@ def create_flight_extractor():
     }},
     "cabin_class": {{
       "rules": [
-        "چیزی گفته نشده → cabin_class=null, cabin_class_provided=false.",
-        "صراحتاً گفته شده (اکونومی/بیزینس/فرست) یا «فرقی نمی‌کند» → cabin_class مقدار مناسب (فرقی نمی‌کند → \\"unspecified\\")، cabin_class_provided=true."
+        " این فیلد اختیاری است و برنامه هرگز درباره‌اش از کاربر سؤال نمی‌پرسد."
+        " فقط اگر کاربر صراحتاً اکونومی/بیزینس/فرست گفت → cabin_class مناسب و cabin_class_provided=true."
+        " «فرقی نمی‌کند» → cabin_class="unspecified", cabin_class_provided=true."
+        " چیزی گفته نشده → cabin_class=null, cabin_class_provided=false."
       ]
     }},
     "sort_by": {{
@@ -408,6 +410,26 @@ def resolve_departure_date(raw_date: str | None):
  
     return None
 
+CABIN_TEXT_KEYWORDS = [
+    ("economy", ("اکونومی", "اقتصادی", "economy")),
+    ("business", ("بیزینس", "business")),
+    ("first", ("فرست", "first class")),
+]
+
+def detect_cabin_in_text(text: str):
+    """کلاس پرواز را مستقیم از متن کاربر تشخیص می‌دهد (مستقل از LLM)."""
+    t = (
+        (text or "")
+        .replace("\u200c", " ")
+        .replace("ي", "ی")
+        .replace("ك", "ک")
+        .lower()
+    )
+    for key, words in CABIN_TEXT_KEYWORDS:
+        if any(w in t for w in words):
+            return key
+    return None
+
 def extract_flight_request(user_text: str,current_state: dict | None = None) -> FlightRequest:
  
     today = datetime.now(ZoneInfo("Asia/Tehran")).date().isoformat()
@@ -422,6 +444,15 @@ def extract_flight_request(user_text: str,current_state: dict | None = None) -> 
         "today": today,
         "current_state": current_state
     })
+    # کلاس پرواز مستقیم از متن کاربر هم تشخیص داده می‌شود (مستقل از LLM)؛
+    # قبل از هر return زودهنگام (مثلاً خطای تاریخ) اجرا می‌شود.
+    cabin_from_text = detect_cabin_in_text(user_text)
+    if cabin_from_text:
+        result.cabin_class = cabin_from_text
+        result.cabin_class_provided = True
+    elif result.cabin_class in ("economy", "business", "first"):
+        result.cabin_class_provided = True
+
     text_origin, text_destination = detect_route_from_text(
         user_text
     )
@@ -464,7 +495,6 @@ def extract_flight_request(user_text: str,current_state: dict | None = None) -> 
     if date_error:
         result.departure_date = None
         result.date_error = date_error
-
     return result
  
 def merge_flight_state(new_request: FlightRequest):
