@@ -62,13 +62,14 @@ def _run_graph_step(current_state, user_message):
         
         graph_result = flight_graph.invoke(current_state)
         assistant_message = graph_result["assistant_message"]
-    except Exception:
+    except Exception as error:
         print("GRAPH STEP ERROR:")
         print(traceback.format_exc())
+
         graph_result = None
         assistant_message = (
-            "متأسفم، یک خطای غیرمنتظره پیش آمد. لطفاً دوباره تلاش "
-            "کنید یا اطلاعات را از نو وارد کنید."
+            "متأسفم، یک خطای غیرمنتظره پیش آمد.\n\n"
+            f"`{type(error).__name__}: {error}`"
         )
 
     if graph_result is not None:

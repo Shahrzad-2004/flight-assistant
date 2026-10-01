@@ -442,7 +442,7 @@ def search_alibaba_international(
 ):
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=False,
+            headless=True,
             executable_path=r"C:\Program Files\Google\Chrome\Application\chrome.exe",
         )
         page = browser.new_page()
