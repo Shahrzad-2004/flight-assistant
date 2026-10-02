@@ -12,8 +12,17 @@ import streamlit.components.v1 as components
 
 
 from cookie_manager import cookies
-from flight_graph import flight_graph,detect_cabin_key
-from chat_database import save_message, load_messages, delete_session
+from flight_graph import flight_graph
+from chat_database import (
+    save_message,
+    load_messages,
+    list_sessions,
+    delete_session,
+    set_session_pinned,
+    set_session_archived,
+    rename_session,
+    MAX_TITLE_LENGTH,
+)
 WELCOME_MESSAGE = (
     "سلام من دستیارهوشمند رزرو بلیط هستم. "
     "چطور می توانم در رزرو بلیط کمکتان کنم ؟ "
@@ -258,10 +267,274 @@ def remove_session(session_id: str):
     if session_id == st.session_state.get("session_id"):
         start_new_conversation()
 
+@st.dialog("آیا می‌خواهید این چت حذف شود؟")
+def delete_session_dialog(session_id: str):
+    """پنجره‌ی تأیید حذف یک گفتگو - خارج از سایدبار و روی صفحه‌ی
+    اصلی باز می‌شود (st.dialog)، با دو دکمه‌ی هم‌اندازه‌ی بله/خیر."""
+
+    yes_col, no_col = st.columns(2)
+
+    with yes_col:
+        if st.button(
+            "بله",
+            key=f"confirm_delete_{session_id}",
+            use_container_width=True
+        ):
+            remove_session(session_id)
+            st.rerun()
+
+    with no_col:
+        if st.button(
+            "خیر",
+            key=f"cancel_delete_{session_id}",
+            use_container_width=True
+        ):
+            st.rerun()
+
+
+def toggle_pin_session(session_id: str, pinned: bool):
+    """پین کردن (pinned=True) یا برداشتن پین یک گفتگو."""
+    set_session_pinned(session_id, pinned, user_id=current_user_id())
+
+
+def archive_session(session_id: str):
+    """آرشیو کردن گفتگو؛ پیام‌ها در دیتابیس می‌مانند و فقط از لیست فعال
+    خارج می‌شود. اگر گفتگوی فعلی آرشیو شد، یک گفتگوی تازه باز می‌شود."""
+    set_session_archived(session_id, True, user_id=current_user_id())
+
+    if session_id == st.session_state.get("session_id"):
+        start_new_conversation()
+
+
+def unarchive_session(session_id: str):
+    """خارج کردن گفتگو از آرشیو و برگشت به لیست گفتگوهای اخیر."""
+    set_session_archived(session_id, False, user_id=current_user_id())
+
+
+def open_archive_view():
+    """ورود به نمای «بایگانی» داخل نوار کناری.
+    جهت انیمیشن ورود در session_state ذخیره می‌شود تا فقط همین یک
+    rerun انیمیشن داشته باشد و rerunهای بعدی محتوا را دوباره حرکت ندهند."""
+    st.session_state.show_archive = True
+    st.session_state.sidebar_anim = "left"
+
+
+def close_archive_view():
+    """بازگشت از نمای «بایگانی» به نوار کناری معمولی."""
+    st.session_state.show_archive = False
+    st.session_state.sidebar_anim = "right"
+
+
+@st.dialog("تغییر نام گفتگو")
+def rename_session_dialog(session_id: str, current_title: str):
+    """پنجره‌ی تغییر عنوان گفتگو؛ عنوان جدید در دیتابیس ذخیره می‌شود و
+    بعد از Refresh یا اجرای دوباره‌ی برنامه هم باقی می‌ماند."""
+
+    new_title = st.text_input(
+        "عنوان جدید گفتگو",
+        value=current_title[:MAX_TITLE_LENGTH],
+        max_chars=MAX_TITLE_LENGTH,
+        key=f"rename_input_{session_id}"
+    )
+
+    save_col, cancel_col = st.columns(2)
+
+    with save_col:
+        if st.button(
+            "ذخیره",
+            key=f"rename_save_{session_id}",
+            use_container_width=True
+        ):
+            if new_title.strip():
+                rename_session(
+                    session_id,
+                    new_title,
+                    user_id=current_user_id()
+                )
+                st.rerun()
+            else:
+                st.markdown("⚠️ عنوان گفتگو نمی‌تواند خالی باشد.")
+
+    with cancel_col:
+        if st.button(
+            "انصراف",
+            key=f"rename_cancel_{session_id}",
+            use_container_width=True
+        ):
+            st.rerun()
+
+
+def render_session_card(session: dict, archived: bool = False):
+    """رندر یک کارت گفتگو در نوار کناری: دکمه‌ی عنوان + منوی سه‌نقطه.
+    برای گفتگوهای فعال: پین / آرشیو / تغییر نام / حذف.
+    برای گفتگوهای بایگانی‌شده: خارج کردن از بایگانی / تغییر نام / حذف."""
+
+    session_id = session["session_id"]
+    is_active = session_id == st.session_state.session_id
+    is_pinned = session.get("is_pinned", False) and not archived
+
+    if is_active:
+        icon = "📌🧳 " if is_pinned else "🧳 "
+    elif is_pinned:
+        icon = "📌 "
+    else:
+        icon = "💬 "
+
+    # کل کارت هر گفتگو (نام + سه‌نقطه) داخل یک کانتینر واحد
+    with st.container(key=f"chat_card_{session_id}"):
+
+        row_label, row_menu = st.columns([5, 1])
+
+        with row_label:
+            st.button(
+                icon + session["title"],
+                key=f"session_{session_id}",
+                use_container_width=True,
+                on_click=switch_session,
+                args=(session_id,)
+            )
+
+        with row_menu:
+
+            with st.popover("⋮", key=f"menu_toggle_{session_id}"):
+
+                if archived:
+                    st.button(
+                        "  خارج کردن از بایگانی",
+                        key=f"archive_option_{session_id}",
+                        use_container_width=True,
+                        on_click=unarchive_session,
+                        args=(session_id,)
+                    )
+                else:
+                    st.button(
+                        "📍 برداشتن پین" if is_pinned else "📌 پین کردن",
+                        key=f"pin_option_{session_id}",
+                        use_container_width=True,
+                        on_click=toggle_pin_session,
+                        args=(session_id, not is_pinned)
+                    )
+
+                    st.button(
+                        "  بایگانی کردن",
+                        key=f"archive_option_{session_id}",
+                        use_container_width=True,
+                        on_click=archive_session,
+                        args=(session_id,)
+                    )
+
+                # دیالوگ فقط در همان اجرایی باز می‌شود که دکمه کلیک شده
+                if st.button(
+                    "  تغییر نام",
+                    key=f"rename_option_{session_id}",
+                    use_container_width=True
+                ):
+                    rename_session_dialog(
+                        session_id,
+                        session.get("full_title", session["title"])
+                    )
+
+                st.button(
+                    "  حذف گفتگو",
+                    key=f"delete_option_{session_id}",
+                    use_container_width=True,
+                    on_click=remove_session,
+                    args=(session_id,)
+                )
+
+
+# متن دکمه‌ی بازگشت. در چیدمان راست‌به‌چپ فلش «بازگشت» به سمت راست
+# (سمت شروع) است؛ اگر فلش چپ (←) را ترجیح می‌دهید فقط همین ثابت را عوض کنید.
+ARCHIVE_BACK_LABEL = "→ بازگشت"
+
+
+def render_sidebar_main_view(user_id: int | None):
+    """نمای معمولی نوار کناری: گفتگوی جدید، گفتگوهای اخیر و ورودی «بایگانی»."""
+
+    with st.container(key="sidebar_header_box"):
+
+        st.markdown(
+            '<div class="sidebar-title">✈️ دستیار هوشمند بلیط</div>',
+            unsafe_allow_html=True
+        )
+
+        st.button(
+            "گفتگوی جدید",
+            key="new_chat_button",
+            use_container_width=True,
+            on_click=start_new_conversation
+        )
+
+    st.markdown(
+        '<div class="sidebar-section-title">گفتگوهای اخیر</div>',
+        unsafe_allow_html=True
+    )
+
+    sessions = list_sessions(user_id=user_id)
+
+    if not sessions:
+
+        st.markdown(
+            '<div class="sidebar-empty">هنوز گفتگویی ذخیره نشده است.</div>',
+            unsafe_allow_html=True
+        )
+
+    for session in sessions:
+        render_session_card(session)
+
+    # ورودی بایگانی: زیر لیست گفتگوها و بالای باکس کاربر.
+    # با کلیک، کل نوار کناری به نمای بایگانی تبدیل می‌شود (نه لیست بازشونده)
+    with st.container(key="archive_entry_box"):
+
+        st.button(
+            "  بایگانی",
+            key="archive_toggle_button",
+            use_container_width=True,
+            on_click=open_archive_view
+        )
+
+
+def render_sidebar_archive_view(user_id: int | None):
+    """نمای «بایگانی» داخل نوار کناری: دکمه‌ی بازگشت، عنوان و گفتگوهای
+    واقعیِ بایگانی‌شده‌ی همین کاربر (از دیتابیس)."""
+
+    with st.container(key="archive_header_box"):
+
+        st.markdown(
+            '<div class="sidebar-title">  بایگانی</div>',
+            unsafe_allow_html=True
+        )
+
+        st.button(
+            ARCHIVE_BACK_LABEL,
+            key="archive_back_button",
+            use_container_width=True,
+            on_click=close_archive_view
+        )
+
+    st.markdown(
+        '<div class="sidebar-section-title">گفتگوهای بایگانی‌شده</div>',
+        unsafe_allow_html=True
+    )
+
+    archived_sessions = list_sessions(user_id=user_id, archived=True)
+
+    if not archived_sessions:
+
+        st.markdown(
+            '<div class="sidebar-empty">بایگانی خالی است.</div>',
+            unsafe_allow_html=True
+        )
+
+    for session in archived_sessions:
+        render_session_card(session, archived=True)
+
+
 def logout_user():
     """خروج کاربر از حساب: پاک کردن session و کوکی."""
     st.session_state.pop("user", None)
     st.session_state["just_logged_out"] = True
+    st.session_state.pop("show_archive", None)
 
     try:
         del cookies["user_id"]

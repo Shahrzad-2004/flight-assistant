@@ -23,7 +23,10 @@ from styles import (
     inject_auth_style,
     inject_user_box_style,
     inject_flight_ticket,
-    inject_delete_popup_position
+    inject_delete_popup_position,
+    inject_hero_typing,
+    inject_cabin_filter_panel_style,
+    inject_search_loader
   
 
 
@@ -38,7 +41,10 @@ from ui_handlers import (
     start_new_conversation,
     switch_session,
     remove_session,
+    delete_session_dialog,
     toggle_sidebar,
+    render_sidebar_main_view,
+    render_sidebar_archive_view,
     logout_user,      
 
 )
@@ -116,6 +122,13 @@ CABIN_FILTER_OPTIONS = [
     ("first", "فرست کلاس"),
     ("unspecified", "اهمیت ندارد"),
 ]
+
+# گزینه‌های پنل کوچک «کلاس پرواز» سمت چپ (نتایج پرواز)
+CABIN_PANEL_OPTIONS = [
+    ("first", "فرست کلاس"),
+    ("economy", "اکونومی"),
+    ("business", "بیزینس"),
+]
 def get_cabin_label(cabin_class):
 
     cabin_labels = {
@@ -152,6 +165,7 @@ inject_login_style()
 inject_auth_style()
 inject_user_box_style()
 inject_flight_ticket()
+inject_cabin_filter_panel_style()
 
 
 
@@ -197,64 +211,25 @@ st.button(
 
 with st.sidebar:
 
-    with st.container(key="sidebar_header_box"):
-
-        st.markdown(
-            '<div class="sidebar-title">✈️ دستیار هوشمند بلیط</div>',
-            unsafe_allow_html=True
-        )
-        
-        st.button(
-            "گفتگوی جدید",
-            key="new_chat_button",
-            use_container_width=True,
-            on_click=start_new_conversation
-        )
-
-    st.markdown(
-        '<div class="sidebar-section-title">گفتگوهای اخیر</div>',
-        unsafe_allow_html=True
-    )
-
     current_user_id = st.session_state.get("user", {}).get("id")
-    sessions = list_sessions(user_id=current_user_id)
 
-    if not sessions:
+    # جهت انیمیشن گذار (فقط برای همان rerunی که بین دو نما جابه‌جا شده)
+    sidebar_anim = st.session_state.pop("sidebar_anim", None)
 
-        st.markdown(
-            '<div class="sidebar-empty">هنوز گفتگویی ذخیره نشده است.</div>',
-            unsafe_allow_html=True
-        )
+    view_key = {
+        "left": "sbview_anim_left",     # ورود به بایگانی
+        "right": "sbview_anim_right"    # بازگشت از بایگانی
+    }.get(sidebar_anim, "sbview_static")
 
+    # محتوای نوار کناری: یا نمای معمولی، یا نمای کامل «بایگانی».
+    # باکس کاربر عمداً بیرون از این کانتینر است (ثابت پایین می‌ماند و
+    # انیمیشن روی آن اثر نمی‌گذارد)
+    with st.container(key=view_key):
 
-    for session in sessions:
-
-        session_id = session["session_id"]
-        is_active = session_id == st.session_state.session_id
-
-        # کل کارت هر گفتگو (نام + سه‌نقطه) داخل یک کانتینر واحد
-        with st.container(key=f"chat_card_{session_id}"):
-
-            row_label, row_menu = st.columns([5, 1])
-
-            with row_label:
-                st.button(
-                    ("🧳 " if is_active else "💬 ") + session["title"],
-                    key=f"session_{session_id}",
-                    use_container_width=True,
-                    on_click=switch_session,
-                    args=(session_id,)
-                )
-
-            with row_menu:
-
-                with st.popover("⋮", key=f"menu_toggle_{session_id}"):
-                    if st.button(
-                        " حذف",
-                        key=f"delete_option_{session_id}",
-                        use_container_width=True
-                    ):
-                        remove_session(session_id)
+        if st.session_state.get("show_archive", False):
+            render_sidebar_archive_view(current_user_id)
+        else:
+            render_sidebar_main_view(current_user_id)
 
     # باکس کاربر: کل باکس کلیک‌پذیره (details/summary) و منوی خروج را باز می‌کند
     if "user" in st.session_state:
@@ -735,26 +710,36 @@ elif current_ui == "search":
         if preferred and preferred != "unspecified" and not preferred_available:
             st.info("پروازی با کلاس درخواستی پیدا نشد؛ سایر کلاس‌ها نمایش داده می‌شوند.")
 
-        st.markdown(
-            '<div class="cabin-title">نوع پرواز:</div>',
-            unsafe_allow_html=True
-        )
-
-# فیلترهای کلاس پرواز — RTL
-        cols = st.columns(len(present))
-
+        # پنل کوچک سمت چپ: هر سه کلاس را می‌شود هم‌زمان، دوتایی یا تکی
+        # تیک زد. کلاسی که در نتایج پروازی ندارد غیرفعال نمایش داده می‌شود
         selected = set()
 
-        for col, (key, label) in zip(reversed(cols), present):
-            default = (not preferred_available) or preferred == key
+        with st.container(key="cabin_filter_panel"):
 
-            with col:
+            st.markdown(
+                '<div class="cabin-filter-head">'
+                '<div class="cabin-filter-icon">✈</div>'
+                '<div class="cabin-filter-texts">'
+                '<div class="cabin-filter-title">کلاس پرواز</div>'
+                '<div class="cabin-filter-sub">نتایج را فیلتر کنید</div>'
+                '</div></div>',
+                unsafe_allow_html=True
+            )
+
+            for key, label in CABIN_PANEL_OPTIONS:
+                count = counts.get(key, 0)
+                default = count > 0 and (
+                    (not preferred_available) or preferred == key
+                )
+
                 if st.checkbox(
-                    f"{label}  ({counts[key]})",
+                    f"{label}  ({count})",
                     value=default,
                     key=f"cabin_filter_{search_id}_{key}",
+                    disabled=(count == 0),
                 ):
                     selected.add(key)
+
         visible = [f for f in flights if detect_cabin_key(f) in selected]
 
         if not visible:
@@ -777,6 +762,8 @@ st.markdown(
 
 # جای دکمه‌ی «حذف» نسبت به سه‌نقطه‌ی همان ردیف گفتگو
 inject_delete_popup_position()
+inject_hero_typing()
+inject_search_loader()
 
 
 if prompt:

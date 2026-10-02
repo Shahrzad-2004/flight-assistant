@@ -37,7 +37,154 @@ def create_tables():
                 "ALTER TABLE conversations ADD COLUMN user_id INTEGER"
             )
 
+        _migrate_conversation_meta(connection)
+
         connection.commit()
+
+
+# وضعیت هر گفتگو (پین / آرشیو / عنوان دلخواه) در جدول جداگانه‌ی
+# conversation_meta نگه‌داری می‌شود، نه داخل جدول conversations؛
+# چون conversations یک ردیف به‌ازای «هر پیام» دارد و اگر پین/آرشیو
+# روی هر پیام ذخیره می‌شد، پیام‌های جدید مقدار پیش‌فرض می‌گرفتند.
+# کلید جدول (session_id, owner_id) است تا وضعیت هر کاربر مستقل باشد.
+# owner_id برای کاربر لاگین‌شده همان user_id است و برای مهمان 0
+# (آی‌دی کاربران از 1 شروع می‌شود، پس تداخلی پیش نمی‌آید).
+GUEST_OWNER_ID = 0
+MAX_TITLE_LENGTH = 100
+
+_META_COLUMNS = {
+    "is_pinned": "INTEGER NOT NULL DEFAULT 0",
+    "is_archived": "INTEGER NOT NULL DEFAULT 0",
+    "custom_title": "TEXT",
+}
+
+
+def _migrate_conversation_meta(connection):
+    """ساخت امن جدول وضعیت گفتگوها؛ چند بار اجرا شدنش بی‌خطر است و
+    هیچ داده‌ی قبلی را تغییر یا حذف نمی‌کند."""
+
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS conversation_meta (
+            session_id TEXT NOT NULL,
+            owner_id INTEGER NOT NULL DEFAULT 0,
+            is_pinned INTEGER NOT NULL DEFAULT 0,
+            is_archived INTEGER NOT NULL DEFAULT 0,
+            custom_title TEXT,
+            PRIMARY KEY (session_id, owner_id)
+        )
+    """)
+
+    # اگر جدول از قبل با ساختار ناقص وجود داشت، فقط ستون‌های کم را اضافه کن
+    meta_columns = [
+        row[1]
+        for row in connection.execute(
+            "PRAGMA table_info(conversation_meta)"
+        ).fetchall()
+    ]
+
+    for column_name, column_definition in _META_COLUMNS.items():
+        if column_name not in meta_columns:
+            connection.execute(
+                f"ALTER TABLE conversation_meta "
+                f"ADD COLUMN {column_name} {column_definition}"
+            )
+
+
+def _owner_id(user_id: int | None) -> int:
+    return GUEST_OWNER_ID if user_id is None else user_id
+
+
+def _session_exists(connection, session_id: str, user_id: int | None) -> bool:
+    """آیا این گفتگو واقعاً متعلق به همین کاربر (یا مهمان) است؟"""
+
+    if user_id is None:
+        row = connection.execute(
+            "SELECT 1 FROM conversations "
+            "WHERE session_id = ? AND user_id IS NULL LIMIT 1",
+            (session_id,)
+        ).fetchone()
+    else:
+        row = connection.execute(
+            "SELECT 1 FROM conversations "
+            "WHERE session_id = ? AND user_id = ? LIMIT 1",
+            (session_id, user_id)
+        ).fetchone()
+
+    return row is not None
+
+
+def _update_meta(
+    session_id: str,
+    user_id: int | None,
+    assignments: str,
+    params: tuple
+) -> bool:
+    """به‌روزرسانی وضعیت یک گفتگو؛ فقط اگر گفتگو مال همین کاربر باشد."""
+
+    with get_connection() as connection:
+
+        if not _session_exists(connection, session_id, user_id):
+            return False
+
+        owner_id = _owner_id(user_id)
+
+        connection.execute(
+            "INSERT OR IGNORE INTO conversation_meta "
+            "(session_id, owner_id) VALUES (?, ?)",
+            (session_id, owner_id)
+        )
+
+        connection.execute(
+            f"UPDATE conversation_meta SET {assignments} "
+            f"WHERE session_id = ? AND owner_id = ?",
+            (*params, session_id, owner_id)
+        )
+
+        connection.commit()
+
+    return True
+
+
+# پین کردن / برداشتن پین یک گفتگو
+def set_session_pinned(
+    session_id: str,
+    pinned: bool,
+    user_id: int | None = None
+) -> bool:
+    return _update_meta(
+        session_id, user_id, "is_pinned = ?", (1 if pinned else 0,)
+    )
+
+
+# آرشیو کردن / خارج کردن از آرشیو (پیام‌ها هیچ‌وقت حذف نمی‌شوند).
+# گفتگوی آرشیوشده پین هم نمی‌ماند تا بعد از خروج از آرشیو عادی برگردد.
+def set_session_archived(
+    session_id: str,
+    archived: bool,
+    user_id: int | None = None
+) -> bool:
+    if archived:
+        return _update_meta(
+            session_id, user_id, "is_archived = 1, is_pinned = 0", ()
+        )
+
+    return _update_meta(session_id, user_id, "is_archived = 0", ())
+
+
+# تغییر عنوان گفتگو؛ عنوان خالی پذیرفته نمی‌شود
+def rename_session(
+    session_id: str,
+    new_title: str,
+    user_id: int | None = None
+) -> bool:
+    clean_title = " ".join((new_title or "").split())[:MAX_TITLE_LENGTH]
+
+    if not clean_title:
+        return False
+
+    return _update_meta(
+        session_id, user_id, "custom_title = ?", (clean_title,)
+    )
 
 
 def save_message(session_id: str, role: str, content: str, user_id: int | None = None):
@@ -98,44 +245,63 @@ def load_messages(session_id: str, user_id: int | None = None):
     ]
 
 
-#   فهرست گفتگوهای ذخیره‌ شده‌ی همین کاربر (یا مهمان)، از جدیدترین به قدیمی‌ترین
-def list_sessions(user_id: int | None = None):
+#   فهرست گفتگوهای ذخیره‌ شده‌ی همین کاربر (یا مهمان).
+#   archived=False (پیش‌فرض): گفتگوهای فعال؛ ابتدا پین‌شده‌ها و بعد بقیه،
+#   هر گروه از جدیدترین به قدیمی‌ترین.
+#   archived=True: فقط گفتگوهای آرشیوشده.
+def list_sessions(user_id: int | None = None, archived: bool = False):
 
     with get_connection() as connection:
 
         if user_id is None:
-            owner_filter = "WHERE user_id IS NULL"
-            params = ()
+            owner_filter = "WHERE c.user_id IS NULL"
         else:
-            owner_filter = "WHERE user_id = ?"
-            params = (user_id,)
+            owner_filter = "WHERE c.user_id = ?"
+
+        params = [_owner_id(user_id)]
+
+        if user_id is not None:
+            params.append(user_id)
+
+        params.append(1 if archived else 0)
 
         rows = connection.execute(
             f"""
             SELECT
-                session_id,
-                MAX(created_at) AS last_activity,
+                c.session_id,
+                MAX(c.created_at) AS last_activity,
                 (
                     SELECT content
                     FROM conversations AS first_msg
-                    WHERE first_msg.session_id = conversations.session_id
+                    WHERE first_msg.session_id = c.session_id
+                      AND first_msg.user_id IS c.user_id
                       AND first_msg.role = 'user'
                     ORDER BY first_msg.id ASC
                     LIMIT 1
-                ) AS title
-            FROM conversations
+                ) AS title,
+                COALESCE(m.is_pinned, 0) AS is_pinned,
+                m.custom_title AS custom_title
+            FROM conversations AS c
+            LEFT JOIN conversation_meta AS m
+                ON m.session_id = c.session_id
+               AND m.owner_id = ?
             {owner_filter}
-            GROUP BY session_id
-            ORDER BY last_activity DESC
+              AND COALESCE(m.is_archived, 0) = ?
+            GROUP BY c.session_id
+            ORDER BY is_pinned DESC, last_activity DESC
             """,
             params
         ).fetchall()
 
     sessions = []
 
-    for session_id, last_activity, title in rows:
+    for session_id, last_activity, title, is_pinned, custom_title in rows:
 
-        clean_title = (title or "گفتگوی بدون عنوان").strip()
+        full_title = (
+            custom_title or title or "گفتگوی بدون عنوان"
+        ).strip()
+
+        clean_title = full_title
 
         if len(clean_title) > 28:
             clean_title = clean_title[:28] + "…"
@@ -143,7 +309,9 @@ def list_sessions(user_id: int | None = None):
         sessions.append(
             {
                 "session_id": session_id,
-                "title": clean_title
+                "title": clean_title,
+                "full_title": full_title,
+                "is_pinned": bool(is_pinned)
             }
         )
 
@@ -165,5 +333,11 @@ def delete_session(session_id: str, user_id: int | None = None):
                 "DELETE FROM conversations WHERE session_id = ? AND user_id = ?",
                 (session_id, user_id)
             )
+
+        # وضعیت پین/آرشیو/عنوان این گفتگو هم همراه آن پاک می‌شود
+        connection.execute(
+            "DELETE FROM conversation_meta WHERE session_id = ? AND owner_id = ?",
+            (session_id, _owner_id(user_id))
+        )
 
         connection.commit()
