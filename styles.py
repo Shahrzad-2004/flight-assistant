@@ -1,3 +1,5 @@
+import json
+
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -75,37 +77,106 @@ def inject_main_style() -> None:
         color: #111827 !important;
     }
     .main-card{
-    
-        background:rgba(255,255,255,.90);
-    
-        backdrop-filter:blur(18px);
-    
+
+        /* شیشه‌ای ملایم (glassmorphism): نیمه‌شفاف، بلور، حاشیه‌ی نرم
+           و سایه‌ی کم‌عمق؛ به‌اندازه‌ای مات که متن کاملاً خوانا بماند */
+        background:linear-gradient(
+            145deg,
+            rgba(255,255,255,.78),
+            rgba(255,255,255,.60)
+        );
+
+        backdrop-filter:blur(18px) saturate(140%);
+        -webkit-backdrop-filter:blur(18px) saturate(140%);
+
         border-radius:28px;
-    
+
         width:700px;
         max-width:calc(100vw - 40px);
         box-sizing:border-box;
-        
+
         margin: 0 auto 30px auto;
-        
+
         padding:50px;
-    
-        box-shadow:0 20px 40px rgba(0,0,0,.18);
-    
-        border:1px solid rgba(255,255,255,.75);
-    
+
+        border:1px solid rgba(255,255,255,.78);
+
+        box-shadow:
+            0 18px 42px rgba(72,128,145,.16),
+            0 2px 8px rgba(31,41,55,.05),
+            inset 0 1px 0 rgba(255,255,255,.85);
+
+    }
+
+    /* مرورگرهایی که backdrop-filter ندارند: پس‌زمینه‌ی مات‌تر */
+    @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+        .main-card{
+            background:rgba(255,255,255,.90);
+        }
     }
     
-    /* لوگو */
-    
+    /* لوگو: مسیر پرواز نقطه‌چین از مبدا (A) تا مقصد (B) با یک حلقه‌ی کوچک وسط راه
+       + هواپیمای متحرک روی مسیر. خود ✈️ داخل HTML باقی می‌ماند ولی مخفی است؛
+       مسیر و هواپیما با CSS رسم می‌شوند. ابعاد ثابت است تا چیدمان کارت نپرد. */
+
     .logo{
-    
-        font-size:60px;
-    
-        text-align:center;
-    
-        margin-bottom:8px;
-    
+
+        position:relative;
+
+        width:320px;
+        height:112px;
+
+        margin:0 auto 8px auto;
+
+        font-size:0;
+        line-height:0;
+        color:transparent;
+
+        background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='112' viewBox='0 0 320 112'%3E%3Cpath d='M23.9 92.0 L25.2 91.9 L26.7 91.8 L28.4 91.6 L30.3 91.5 L32.3 91.3 L34.5 91.1 L36.8 91.0 L39.2 90.8 L41.7 90.6 L44.2 90.4 L46.8 90.2 L49.3 90.0 L51.9 89.8 L54.4 89.6 L56.9 89.4 L59.3 89.2 L61.6 89.0 L63.8 88.9 L65.9 88.7 L67.8 88.5 L69.6 88.4 L71.4 88.2 L73.2 88.1 L75.0 87.9 L76.7 87.8 L78.4 87.7 L80.1 87.6 L81.7 87.5 L83.4 87.4 L85.0 87.3 L86.6 87.3 L88.1 87.2 L89.7 87.2 L91.2 87.1 L92.7 87.1 L94.2 87.0 L95.7 86.9 L97.1 86.9 L98.6 86.8 L100.0 86.7 L101.5 86.6 L102.9 86.4 L104.2 86.2 L105.6 86.0 L106.9 85.8 L108.3 85.5 L109.6 85.2 L110.9 84.8 L112.2 84.5 L113.5 84.1 L114.8 83.6 L116.2 83.1 L117.5 82.6 L118.9 82.1 L120.3 81.5 L121.7 80.9 L123.1 80.3 L124.6 79.6 L126.1 78.9 L127.6 78.1 L129.3 77.4 L130.9 76.5 L132.6 75.6 L134.4 74.7 L136.2 73.7 L138.0 72.7 L139.8 71.6 L141.6 70.5 L143.4 69.4 L145.2 68.2 L147.0 67.0 L148.7 65.8 L150.4 64.6 L152.0 63.4 L153.5 62.1 L155.0 60.9 L156.4 59.7 L157.7 58.6 L158.9 57.5 L160.0 56.4 L161.0 55.3 L162.0 54.3 L162.8 53.3 L163.6 52.3 L164.3 51.4 L165.0 50.5 L165.6 49.6 L166.1 48.7 L166.6 47.8 L167.0 46.9 L167.4 46.1 L167.7 45.2 L167.9 44.4 L168.1 43.5 L168.2 42.6 L168.3 41.8 L168.4 40.9 L168.4 39.9 L168.3 39.0 L168.2 38.0 L168.1 37.0 L167.8 35.9 L167.5 34.8 L167.1 33.6 L166.6 32.5 L166.0 31.2 L165.4 30.0 L164.7 28.8 L164.0 27.6 L163.2 26.4 L162.4 25.2 L161.6 24.0 L160.8 22.8 L159.9 21.7 L159.1 20.6 L158.2 19.6 L157.4 18.7 L156.6 17.8 L155.8 17.0 L155.1 16.3 L154.3 15.6 L153.6 14.9 L152.9 14.3 L152.2 13.8 L151.5 13.3 L150.8 12.8 L150.1 12.3 L149.4 11.9 L148.7 11.5 L147.9 11.2 L147.2 10.9 L146.4 10.6 L145.7 10.4 L144.9 10.2 L144.1 10.0 L143.3 9.9 L142.5 9.8 L141.7 9.7 L140.9 9.7 L140.0 9.8 L139.1 9.8 L138.2 9.9 L137.2 10.1 L136.1 10.3 L135.1 10.5 L134.0 10.8 L132.9 11.1 L131.8 11.4 L130.7 11.8 L129.6 12.2 L128.5 12.7 L127.4 13.2 L126.3 13.7 L125.3 14.2 L124.3 14.8 L123.4 15.4 L122.4 16.1 L121.6 16.7 L120.8 17.4 L120.1 18.1 L119.4 18.8 L118.7 19.6 L118.0 20.4 L117.4 21.3 L116.8 22.2 L116.2 23.2 L115.6 24.1 L115.1 25.2 L114.6 26.2 L114.1 27.3 L113.7 28.4 L113.3 29.4 L113.0 30.5 L112.7 31.6 L112.4 32.7 L112.2 33.8 L112.0 34.9 L111.9 36.0 L111.8 37.0 L111.8 38.0 L111.8 39.0 L111.9 40.0 L112.0 41.1 L112.2 42.2 L112.4 43.3 L112.7 44.4 L113.0 45.5 L113.3 46.6 L113.7 47.6 L114.1 48.7 L114.6 49.8 L115.1 50.8 L115.6 51.9 L116.2 52.8 L116.8 53.8 L117.4 54.7 L118.0 55.6 L118.7 56.4 L119.4 57.2 L120.1 57.9 L120.8 58.6 L121.5 59.3 L122.3 59.9 L123.1 60.5 L123.9 61.0 L124.7 61.6 L125.6 62.1 L126.5 62.6 L127.5 63.0 L128.5 63.4 L129.5 63.8 L130.5 64.2 L131.6 64.5 L132.7 64.9 L133.8 65.2 L135.0 65.4 L136.2 65.7 L137.4 65.9 L138.7 66.1 L140.0 66.2 L141.3 66.4 L142.6 66.5 L143.9 66.6 L145.2 66.6 L146.5 66.6 L147.9 66.6 L149.2 66.6 L150.6 66.5 L152.0 66.4 L153.5 66.3 L155.0 66.1 L156.6 65.9 L158.2 65.7 L159.9 65.4 L161.6 65.1 L163.4 64.8 L165.3 64.4 L167.2 64.0 L169.2 63.5 L171.3 63.0 L173.4 62.5 L175.5 61.9 L177.7 61.3 L179.9 60.6 L182.0 59.9 L184.1 59.2 L186.2 58.4 L188.3 57.6 L190.3 56.8 L192.2 56.0 L194.1 55.2 L196.0 54.4 L197.7 53.6 L199.5 52.8 L201.2 52.0 L202.8 51.2 L204.4 50.5 L206.0 49.8 L207.5 49.1 L209.1 48.4 L210.7 47.7 L212.3 47.0 L214.0 46.3 L215.7 45.7 L217.5 45.0 L219.3 44.4 L221.2 43.7 L223.2 43.1 L225.2 42.4 L227.4 41.8 L229.5 41.2 L231.7 40.6 L234.0 40.0 L236.3 39.4 L238.6 38.8 L241.0 38.2 L243.3 37.6 L245.7 37.1 L248.1 36.5 L250.4 36.0 L252.8 35.5 L255.4 34.9 L258.0 34.3 L260.6 33.8 L263.4 33.2 L266.1 32.6 L268.9 32.0 L271.7 31.5 L274.4 30.9 L277.1 30.3 L279.8 29.8 L282.4 29.2 L284.8 28.7 L287.2 28.2 L289.4 27.8 L291.5 27.4 L293.4 27.0 L295.2 26.6 L296.7 26.3 L298.0 26.0' fill='none' stroke='%23488091' stroke-opacity='.6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' stroke-dasharray='6 7'/%3E%3Ccircle cx='24' cy='92' r='5' fill='%23488091' fill-opacity='.8'/%3E%3Ccircle cx='298' cy='26' r='5' fill='white' fill-opacity='.95' stroke='%23488091' stroke-opacity='.8' stroke-width='2.2'/%3E%3C/svg%3E") center / 320px 112px no-repeat;
+
+    }
+
+    .logo::after{
+
+        content:"";
+
+        position:absolute;
+        left:0;
+        top:0;
+        width:36px;
+        height:36px;
+
+        background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath transform='rotate(90 12 12)' fill='%23488091' d='M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z'/%3E%3C/svg%3E") center / contain no-repeat;
+        filter:drop-shadow(0 2px 3px rgba(72,128,145,.30));
+
+        /* دقیقاً همان مسیر خط‌چین داخل پس‌زمینه */
+        offset-path:path("M23.9 92.0 L25.2 91.9 L26.7 91.8 L28.4 91.6 L30.3 91.5 L32.3 91.3 L34.5 91.1 L36.8 91.0 L39.2 90.8 L41.7 90.6 L44.2 90.4 L46.8 90.2 L49.3 90.0 L51.9 89.8 L54.4 89.6 L56.9 89.4 L59.3 89.2 L61.6 89.0 L63.8 88.9 L65.9 88.7 L67.8 88.5 L69.6 88.4 L71.4 88.2 L73.2 88.1 L75.0 87.9 L76.7 87.8 L78.4 87.7 L80.1 87.6 L81.7 87.5 L83.4 87.4 L85.0 87.3 L86.6 87.3 L88.1 87.2 L89.7 87.2 L91.2 87.1 L92.7 87.1 L94.2 87.0 L95.7 86.9 L97.1 86.9 L98.6 86.8 L100.0 86.7 L101.5 86.6 L102.9 86.4 L104.2 86.2 L105.6 86.0 L106.9 85.8 L108.3 85.5 L109.6 85.2 L110.9 84.8 L112.2 84.5 L113.5 84.1 L114.8 83.6 L116.2 83.1 L117.5 82.6 L118.9 82.1 L120.3 81.5 L121.7 80.9 L123.1 80.3 L124.6 79.6 L126.1 78.9 L127.6 78.1 L129.3 77.4 L130.9 76.5 L132.6 75.6 L134.4 74.7 L136.2 73.7 L138.0 72.7 L139.8 71.6 L141.6 70.5 L143.4 69.4 L145.2 68.2 L147.0 67.0 L148.7 65.8 L150.4 64.6 L152.0 63.4 L153.5 62.1 L155.0 60.9 L156.4 59.7 L157.7 58.6 L158.9 57.5 L160.0 56.4 L161.0 55.3 L162.0 54.3 L162.8 53.3 L163.6 52.3 L164.3 51.4 L165.0 50.5 L165.6 49.6 L166.1 48.7 L166.6 47.8 L167.0 46.9 L167.4 46.1 L167.7 45.2 L167.9 44.4 L168.1 43.5 L168.2 42.6 L168.3 41.8 L168.4 40.9 L168.4 39.9 L168.3 39.0 L168.2 38.0 L168.1 37.0 L167.8 35.9 L167.5 34.8 L167.1 33.6 L166.6 32.5 L166.0 31.2 L165.4 30.0 L164.7 28.8 L164.0 27.6 L163.2 26.4 L162.4 25.2 L161.6 24.0 L160.8 22.8 L159.9 21.7 L159.1 20.6 L158.2 19.6 L157.4 18.7 L156.6 17.8 L155.8 17.0 L155.1 16.3 L154.3 15.6 L153.6 14.9 L152.9 14.3 L152.2 13.8 L151.5 13.3 L150.8 12.8 L150.1 12.3 L149.4 11.9 L148.7 11.5 L147.9 11.2 L147.2 10.9 L146.4 10.6 L145.7 10.4 L144.9 10.2 L144.1 10.0 L143.3 9.9 L142.5 9.8 L141.7 9.7 L140.9 9.7 L140.0 9.8 L139.1 9.8 L138.2 9.9 L137.2 10.1 L136.1 10.3 L135.1 10.5 L134.0 10.8 L132.9 11.1 L131.8 11.4 L130.7 11.8 L129.6 12.2 L128.5 12.7 L127.4 13.2 L126.3 13.7 L125.3 14.2 L124.3 14.8 L123.4 15.4 L122.4 16.1 L121.6 16.7 L120.8 17.4 L120.1 18.1 L119.4 18.8 L118.7 19.6 L118.0 20.4 L117.4 21.3 L116.8 22.2 L116.2 23.2 L115.6 24.1 L115.1 25.2 L114.6 26.2 L114.1 27.3 L113.7 28.4 L113.3 29.4 L113.0 30.5 L112.7 31.6 L112.4 32.7 L112.2 33.8 L112.0 34.9 L111.9 36.0 L111.8 37.0 L111.8 38.0 L111.8 39.0 L111.9 40.0 L112.0 41.1 L112.2 42.2 L112.4 43.3 L112.7 44.4 L113.0 45.5 L113.3 46.6 L113.7 47.6 L114.1 48.7 L114.6 49.8 L115.1 50.8 L115.6 51.9 L116.2 52.8 L116.8 53.8 L117.4 54.7 L118.0 55.6 L118.7 56.4 L119.4 57.2 L120.1 57.9 L120.8 58.6 L121.5 59.3 L122.3 59.9 L123.1 60.5 L123.9 61.0 L124.7 61.6 L125.6 62.1 L126.5 62.6 L127.5 63.0 L128.5 63.4 L129.5 63.8 L130.5 64.2 L131.6 64.5 L132.7 64.9 L133.8 65.2 L135.0 65.4 L136.2 65.7 L137.4 65.9 L138.7 66.1 L140.0 66.2 L141.3 66.4 L142.6 66.5 L143.9 66.6 L145.2 66.6 L146.5 66.6 L147.9 66.6 L149.2 66.6 L150.6 66.5 L152.0 66.4 L153.5 66.3 L155.0 66.1 L156.6 65.9 L158.2 65.7 L159.9 65.4 L161.6 65.1 L163.4 64.8 L165.3 64.4 L167.2 64.0 L169.2 63.5 L171.3 63.0 L173.4 62.5 L175.5 61.9 L177.7 61.3 L179.9 60.6 L182.0 59.9 L184.1 59.2 L186.2 58.4 L188.3 57.6 L190.3 56.8 L192.2 56.0 L194.1 55.2 L196.0 54.4 L197.7 53.6 L199.5 52.8 L201.2 52.0 L202.8 51.2 L204.4 50.5 L206.0 49.8 L207.5 49.1 L209.1 48.4 L210.7 47.7 L212.3 47.0 L214.0 46.3 L215.7 45.7 L217.5 45.0 L219.3 44.4 L221.2 43.7 L223.2 43.1 L225.2 42.4 L227.4 41.8 L229.5 41.2 L231.7 40.6 L234.0 40.0 L236.3 39.4 L238.6 38.8 L241.0 38.2 L243.3 37.6 L245.7 37.1 L248.1 36.5 L250.4 36.0 L252.8 35.5 L255.4 34.9 L258.0 34.3 L260.6 33.8 L263.4 33.2 L266.1 32.6 L268.9 32.0 L271.7 31.5 L274.4 30.9 L277.1 30.3 L279.8 29.8 L282.4 29.2 L284.8 28.7 L287.2 28.2 L289.4 27.8 L291.5 27.4 L293.4 27.0 L295.2 26.6 L296.7 26.3 L298.0 26.0");
+        offset-rotate:auto;
+        offset-anchor:50% 50%;
+        offset-distance:0%;
+
+        opacity:0;
+        will-change:offset-distance, opacity;
+        animation:hero-plane-flight 10.5s linear infinite;
+
+    }
+
+    /* چرخه ≈ ۱۰٫۵ ثانیه (آهسته‌تر از قبل): پرواز حدود ۷٫۵ ثانیه (شامل حلقه‌ی بزرگ‌تر)، مکث حدود ۱ ثانیه
+       در مقصد، محو شدن و شروع دوباره از مبدا. جهت هواپیما با شیب مسیر می‌چرخد */
+    @keyframes hero-plane-flight{
+        0%   { offset-distance:0%;   opacity:0; animation-timing-function:ease-out; }
+        6%   { offset-distance:0%;   opacity:1; animation-timing-function:ease-in-out; }
+        78%  { offset-distance:100%; opacity:1; }
+        92%  { offset-distance:100%; opacity:1; }
+        97%  { offset-distance:100%; opacity:0; }
+        100% { offset-distance:0%;   opacity:0; }
+    }
+
+    /* صفحه‌های خیلی باریک: کل مسیر کمی کوچک می‌شود تا از کارت بیرون نزند */
+    @media (max-width: 480px){
+        .logo{
+            zoom:.8;
+        }
     }
     
     /* عنوان */
@@ -126,14 +197,63 @@ def inject_main_style() -> None:
     /* زیرعنوان */
     
     .subtitle{
-    
+
         text-align:center;
-    
+        direction:rtl;
+
         font-size:15px;
-    
+
         font-weight:500;
-    
-        color:#4B5563;
+
+        color:#374151;
+
+        /* ارتفاع ثابت تا هنگام تایپ/پاک شدن متن، چیدمان نپرد */
+        min-height:1.9em;
+        line-height:1.9;
+
+    }
+
+    /* مکان‌نمای چشمک‌زن انتهای متن تایپ‌شونده */
+    .hero-caret{
+        display:inline-block;
+        width:2px;
+        height:1.15em;
+        margin-inline-start:4px;
+        vertical-align:text-bottom;
+        border-radius:1px;
+        background:#488091;
+        animation:hero-caret-blink 1.1s steps(1, end) infinite;
+    }
+
+    @keyframes hero-caret-blink{
+        0%, 55%   { opacity:.85; }
+        56%, 100% { opacity:0;   }
+    }
+
+    /* اگر جاوااسکریپت اجرا نشد (یا کاربر کاهش حرکت خواسته)، جمله‌ی
+       اول به‌صورت ثابت نمایش داده می‌شود. وقتی انیمیشن روشن شد
+       (data-typing=on) این جمله‌ی پشتیبان کنار می‌رود */
+    .hero-typed-text:empty::before{
+        content:attr(data-fallback);
+        opacity:0;
+        animation:hero-fallback-in .01s linear 2.6s forwards;
+    }
+
+    .subtitle[data-typing="on"] .hero-typed-text:empty::before{
+        content:"";
+    }
+
+    @keyframes hero-fallback-in{
+        to{ opacity:1; }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+        .logo::after{ animation:none !important; opacity:1 !important; offset-distance:100% !important; }
+        .hero-caret{ animation:none !important; opacity:0 !important; }
+        .hero-typed-text:empty::before{
+            animation:none !important;
+            opacity:1 !important;
+        }
     }
     
     /* پیام‌های چت */
@@ -549,9 +669,10 @@ def inject_cabin_and_passenger_style() -> None:
 
     /* ===== دکمه‌های معیار مرتب‌سازی (صفحه نتایج): شیشه‌ای ===== */
 
+    /* ترتیب از راست به چپ: ارزان‌ترین ← ... ← گران‌ترین */
     [data-testid="stHorizontalBlock"]:has([class*="st-key-local_sort_"]) {
         direction: rtl !important;
-        flex-direction: row-reverse !important;
+        flex-direction: row !important;
         gap: 10px !important;
     }
 
@@ -792,27 +913,46 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
     }}
 
     {hide_sidebar_rule}
-    /* سایدبار سمت راست */
+
+    /* نوار کناری سمت راست (مناسب چیدمان راست‌به‌چپ).
+       ظرف اصلی استریم‌لیت یک flex افقی است؛ معکوس کردن ترتیب آن
+       نوار کناری را به راست می‌برد و محتوای اصلی خودکار با آن
+       جمع و جور می‌شود */
     [data-testid="stAppViewContainer"]{{
         flex-direction:row-reverse !important;
     }}
 
-    [data-testid="stSidebar"]{{
-        border-right:none !important;
-        border-left:1px solid rgba(0,0,0,.08) !important;
-    }}
-
-    /* در موبایل سایدبار fixed است و از چپ باز می‌شود؛ به راست ببرش */
-    @media (max-width: 768px){{
-        [data-testid="stSidebar"]{{
-            left:auto !important;
-            right:0 !important;
-        }}
-    }}
     /* ظاهر کلی نوار کناری */
     [data-testid="stSidebar"]{{
         background:rgba(255,255,255,.92) !important;
         backdrop-filter:blur(16px);
+        border-right:none !important;
+        border-left:1px solid rgba(72,128,145,.18) !important;
+        box-shadow:-6px 0 24px rgba(72,128,145,.08) !important;
+    }}
+
+    /* جلوگیری از اسکرول افقی هنگام انیمیشن گذار. عمداً clip (نه hidden):
+       hidden یک scroll container می‌سازد و جای ردیف sticky «بایگانی»
+       را به‌هم می‌ریزد؛ clip فقط برش می‌دهد */
+    [data-testid="stSidebar"],
+    [data-testid="stSidebarContent"],
+    [data-testid="stSidebarUserContent"]{{
+        overflow-x:clip !important;
+    }}
+
+    /* دستگیره‌ی تغییر عرض نوار کناری: چون نوار حالا سمت راست است،
+       جهت کشیدنش برعکس می‌شد؛ عرض ثابت می‌ماند */
+    [data-testid="stSidebar"] [data-testid*="esiz"],
+    [data-testid="stSidebar"] [class*="esizer"]{{
+        display:none !important;
+    }}
+
+    /* موبایل: اگر استریم‌لیت نوار را روی صفحه (fixed) می‌کشد، از راست بیاید */
+    @media (max-width: 640px){{
+        [data-testid="stSidebar"]{{
+            left:auto !important;
+            right:0 !important;
+        }}
     }}
 
     [data-testid="stSidebar"] > div{{
@@ -840,7 +980,7 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         position:fixed !important;
         top:14px;
         right:14px;
-        left:auto;
+        left:auto !important;
         z-index:999999 !important;
 
         width:46px !important;
@@ -917,7 +1057,7 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         gap:6px !important;
         align-items:center !important;
         direction:rtl !important;
-        flex-direction:row !important;
+        flex-direction:row-reverse !important;
     }}
 
     /* کارت واحد هر گفتگو: نام + سه‌نقطه (و در صورت باز بودن،
@@ -937,6 +1077,13 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         background:rgba(72,128,145,.10) !important;
         border-color:var(--accent-hover) !important;
     }}
+
+    /* سه‌نقطه‌ی هر گفتگو سمت چپ کارت؛ نام گفتگو سمت راست.
+       (ردیف داخل کارت با rtl + row عادی چیده می‌شود: ستون اول = راست) */
+    [data-testid="stSidebar"] [class*="st-key-chat_card_"] [data-testid="stHorizontalBlock"]{{
+        flex-direction:row !important;
+        direction:rtl !important;
+    }}
     [class*="st-key-delete_option_"] button{{
         background:#fcf2f3 !important;
         color:#ef4444 !important;
@@ -955,25 +1102,236 @@ def inject_sidebar_style(sidebar_open: bool = True) -> None:
         border-color:#ef4444 !important;
     }}
 
-div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]),
-div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]) > div,
-[data-testid="stPopoverBody"]:has([class*="st-key-delete_option_"]),
-div[role="dialog"]:has([class*="st-key-delete_option_"]){{
-background:rgba(255,255,255,.55) !important;
-backdrop-filter:blur(14px) !important;
--webkit-backdrop-filter:blur(14px) !important;
-border:1px solid rgba(255,255,255,.75) !important;
-box-shadow:0 8px 22px rgba(31,41,55,.14) !important;
-box-sizing:border-box !important;
-min-width:0 !important;
-width:120px !important;
-max-width:120px !important;
-translate: -100px 0px !important;
-}}
+    /* گزینه‌های پین / آرشیو / تغییر نام در منوی سه‌نقطه - هم‌قد و
+       هم‌شکل دکمه‌ی حذف، ولی با رنگ خنثی و هماهنگ با برند */
+    [class*="st-key-pin_option_"] button,
+    [class*="st-key-archive_option_"] button,
+    [class*="st-key-rename_option_"] button{{
+        background:#f1f7f9 !important;
+        color:#3d6d7b !important;
+        border:1px solid var(--accent) !important;
+        border-radius:10px !important;
+        min-height:35px !important;
+        box-shadow:none !important;
+    }}
 
-div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]) *{{
-background-color:transparent !important;
-}}
+    [class*="st-key-pin_option_"] button p,
+    [class*="st-key-archive_option_"] button p,
+    [class*="st-key-rename_option_"] button p{{
+        color:#3d6d7b !important;
+    }}
+
+    [class*="st-key-pin_option_"] button:hover,
+    [class*="st-key-archive_option_"] button:hover,
+    [class*="st-key-rename_option_"] button:hover{{
+        background:#e2eef2 !important;
+        border-color:var(--accent-hover) !important;
+    }}
+
+    /* فاصله‌ی جمع‌وجور بین گزینه‌های منو */
+    div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]) [data-testid="stVerticalBlock"]{{
+        gap:.4rem !important;
+    }}
+
+    /* ورودی «بایگانی»: زیر لیست گفتگوها و بالای باکس کاربر، با خط جداکننده.
+       اگر لیست طولانی باشد این ردیف بالای باکس کاربر می‌چسبد (sticky) تا
+       همیشه در دسترس باشد؛ اگر sticky پشتیبانی نشود، ساده زیر لیست می‌ماند */
+    .st-key-archive_entry_box{{
+        position:sticky !important;
+        bottom:104px;
+        z-index:5;
+        margin-top:14px !important;
+        padding:10px 0 4px 0 !important;
+        border-top:1px solid rgba(72,128,145,.25) !important;
+        background:rgba(255,255,255,.96) !important;
+    }}
+
+    .st-key-archive_toggle_button button{{
+        position:relative !important;
+        background:rgba(255,255,255,.7) !important;
+        color:#374151 !important;
+        border:1px solid var(--soft-blue-border) !important;
+        border-radius:14px !important;
+        min-height:40px !important;
+        box-shadow:none !important;
+        direction:rtl !important;
+        justify-content:flex-start !important;
+        padding-inline:14px 30px !important;
+    }}
+
+    .st-key-archive_toggle_button button p{{
+        color:#374151 !important;
+        font-family:'Vazirmatn', sans-serif !important;
+        font-size:14px !important;
+        font-weight:600 !important;
+    }}
+
+    /* فلش کوچک سمت چپ = «ورود به بخش جدید» (نه لیست بازشونده) */
+    .st-key-archive_toggle_button button::after{{
+        content:"‹";
+        position:absolute;
+        left:14px;
+        top:50%;
+        transform:translateY(-52%);
+        font-size:22px;
+        line-height:1;
+        color:#6b7280;
+        transition:transform .2s ease, color .2s ease;
+    }}
+
+    .st-key-archive_toggle_button button:hover{{
+        background:rgba(72,128,145,.10) !important;
+        border-color:var(--accent) !important;
+        transform:none !important;
+    }}
+
+    .st-key-archive_toggle_button button:hover::after{{
+        color:var(--accent);
+        transform:translate(-3px, -52%);
+    }}
+
+    /* کارت هدر نمای بایگانی: هم‌شکل کارت هدر نمای معمولی */
+    .st-key-archive_header_box{{
+        background:#ffffff !important;
+        border:1px solid var(--soft-blue-border) !important;
+        border-radius:18px !important;
+        padding:16px 14px 14px 14px !important;
+        margin-bottom:18px !important;
+        box-shadow:0 4px 14px rgba(111,163,214,.12) !important;
+    }}
+
+    /* دکمه‌ی بازگشت: ساده و روشن، هم‌خانواده با دکمه‌های خنثی منو */
+    .st-key-archive_back_button button{{
+        background:#f1f7f9 !important;
+        color:#3d6d7b !important;
+        border:1px solid var(--accent) !important;
+        border-radius:12px !important;
+        min-height:38px !important;
+        box-shadow:none !important;
+        direction:rtl !important;
+    }}
+
+    .st-key-archive_back_button button p{{
+        color:#3d6d7b !important;
+        font-family:'Vazirmatn', sans-serif !important;
+        font-weight:700 !important;
+        font-size:14px !important;
+    }}
+
+    .st-key-archive_back_button button:hover{{
+        background:#e2eef2 !important;
+        border-color:var(--accent-hover) !important;
+    }}
+
+    /* گذار نرم بین نمای معمولی و نمای بایگانی.
+       فقط روی همان rerunی که نما عوض شده اعمال می‌شود (کلید کانتینر
+       عوض می‌شود). ورود به بایگانی از چپ، بازگشت از راست (RTL).
+       fill-mode برابر backwards است تا بعد از پایان انیمیشن هیچ
+       transform باقی نماند (transform باعث خراب شدن عناصر fixed می‌شود) */
+    .st-key-sbview_anim_left{{
+        animation:sb-view-in-left .34s cubic-bezier(.22,.8,.3,1) backwards;
+    }}
+
+    .st-key-sbview_anim_right{{
+        animation:sb-view-in-right .34s cubic-bezier(.22,.8,.3,1) backwards;
+    }}
+
+    @keyframes sb-view-in-left{{
+        from{{ opacity:0; transform:translateX(-34px); }}
+        to{{   opacity:1; transform:translateX(0); }}
+    }}
+
+    @keyframes sb-view-in-right{{
+        from{{ opacity:0; transform:translateX(34px); }}
+        to{{   opacity:1; transform:translateX(0); }}
+    }}
+
+    @media (prefers-reduced-motion: reduce){{
+        .st-key-sbview_anim_left,
+        .st-key-sbview_anim_right{{
+            animation:none !important;
+        }}
+    }}
+
+    /* پنجره‌ی تغییر نام: چون متن‌های دیالوگ سفید است، ورودی متن باید
+       پس‌زمینه‌ی روشن و متن تیره داشته باشد تا خوانا بماند */
+    [class*="st-key-rename_input_"] input{{
+        color:#1f2937 !important;
+        -webkit-text-fill-color:#1f2937 !important;
+        background:#ffffff !important;
+        direction:rtl !important;
+        text-align:right !important;
+    }}
+
+    [class*="st-key-rename_input_"] [data-baseweb="input"],
+    [class*="st-key-rename_input_"] [data-baseweb="base-input"]{{
+        background:#ffffff !important;
+        border-radius:10px !important;
+    }}
+
+    /* دکمه‌های «ذخیره / انصراف» پنجره‌ی تغییر نام */
+    [class*="st-key-rename_save_"] button,
+    [class*="st-key-rename_cancel_"] button{{
+        min-height:34px !important;
+        padding:4px 6px !important;
+        font-size:13px !important;
+        border-radius:10px !important;
+        box-shadow:none !important;
+    }}
+
+    [class*="st-key-rename_save_"] button{{
+        background:#ffffff !important;
+        border:none !important;
+    }}
+
+    [class*="st-key-rename_save_"] button,
+    [class*="st-key-rename_save_"] button p{{
+        color:#3d6d7b !important;
+    }}
+
+    [class*="st-key-rename_save_"] button:hover{{
+        background:#eaf3f6 !important;
+    }}
+
+    [class*="st-key-rename_cancel_"] button{{
+        background:transparent !important;
+        border:1px solid rgba(255,255,255,.55) !important;
+    }}
+
+    [class*="st-key-rename_cancel_"] button:hover{{
+        background:rgba(255,255,255,.14) !important;
+    }}
+
+    /* پس‌زمینه‌ی منوی سه‌نقطه: رنگ ساده‌ی #e4f6f6 (بدون گرادیانت
+       تیل قبلی). رنگ روی همه‌ی لایه‌های پاپ‌آپ یکی است تا هیچ
+       لایه‌ای رنگ دیگری نشان ندهد؛ فقط خودِ بدنه‌ی منو حاشیه و
+       سایه‌ی ملایم دارد تا لایه‌ها دوبار قاب نشوند */
+    div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]),
+    div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]) > div,
+    [data-testid="stPopoverBody"]:has([class*="st-key-delete_option_"]),
+    div[role="dialog"]:has([class*="st-key-delete_option_"]){{
+        background:#e4f6f6 !important;
+        background-image:none !important;
+        border:none !important;
+        border-radius:14px !important;
+        box-shadow:none !important;
+        backdrop-filter:none !important;
+        -webkit-backdrop-filter:none !important;
+
+        /* کوتاه‌تر شدن عرض (قبلاً حدود ۳۲۰px بود). لبه‌ی چپ پاپ‌آپ
+           همان قبلی می‌ماند و فقط از سمت راست کوتاه می‌شود.
+           عرض برای جا شدن برچسب‌های منو (مثل «خارج کردن از بایگانی»)
+           از ۱۴۰ به ۱۸۴px رسیده است */
+        box-sizing:border-box !important;
+        min-width:0 !important;
+        width:184px !important;
+        max-width:184px !important;
+    }}
+
+    [data-testid="stPopoverBody"]:has([class*="st-key-delete_option_"]){{
+        border:1px solid rgba(72,128,145,.35) !important;
+        box-shadow:0 8px 22px rgba(72,128,145,.22) !important;
+    }}
 
     /* حذف فلش کنار دکمه popover */
     [data-testid="stPopover"] button svg {{
@@ -1208,12 +1566,317 @@ background-color:transparent !important;
         box-shadow:0 -5px 0 #1f2937, 0 5px 0 #1f2937;
     }}
 
+
+    /* قانون موبایل نسخه‌ی دوستم (تا ۷۶۸px) - حفظ شده */
+    @media (max-width: 768px){{
+        [data-testid="stSidebar"]{{
+            left:auto !important;
+            right:0 !important;
+        }}
+    }}
+
+    /* ---- نسخه‌ی قبلیِ استایل پاپ‌آپ (شیشه‌ای، عرض ۱۲۰px، translate ثابت) ----
+       از فایل دوستم نگه داشته شده ولی غیرفعال است؛ جایش را استایل
+       جدید پاپ‌آپ (#e4f6f6 با گزینه‌های پین / بایگانی / تغییر نام / حذف) گرفته.
+       div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]),
+       div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]) > div,
+       [data-testid="stPopoverBody"]:has([class*="st-key-delete_option_"]),
+       div[role="dialog"]:has([class*="st-key-delete_option_"]){{
+       background:rgba(255,255,255,.55) !important;
+       backdrop-filter:blur(14px) !important;
+       -webkit-backdrop-filter:blur(14px) !important;
+       border:1px solid rgba(255,255,255,.75) !important;
+       box-shadow:0 8px 22px rgba(31,41,55,.14) !important;
+       box-sizing:border-box !important;
+       min-width:0 !important;
+       width:120px !important;
+       max-width:120px !important;
+       translate: -100px 0px !important;
+       }}
+       
+       div[data-baseweb="popover"]:has([class*="st-key-delete_option_"]) *{{
+       background-color:transparent !important;
+       }}
+    */
     </style>
     """,
         unsafe_allow_html=True
     )
 
 def inject_delete_popup_position() -> None:
+    """جای منوی سه‌نقطه را برای هر ردیف گفتگو از روی جای واقعی سه‌نقطه‌ی
+    همان ردیف حساب می‌کند (نه مختصات ثابت صفحه)، مثل منوی کشویی
+    برنامه‌های چت: درست زیر سه‌نقطه و چسبیده به آن باز می‌شود؛
+      - لبه‌ی منو با لبه‌ی همان سمتِ سه‌نقطه هم‌راستا است
+      - اگر پایین صفحه جا نباشد، منو بالای سه‌نقطه باز می‌شود
+      - منو همیشه داخل نوار کناری / صفحه می‌ماند
+    پاپ‌آپ استریم‌لیت بیرون از ردیف رندر می‌شود، پس با یک اسکریپت
+    کوچک و از روی getBoundingClientRect همان ردیف جابه‌جا می‌شود."""
+
+    components.html(
+        """
+        <script>
+        (function () {
+            var win = window.parent;
+            var doc = win.document;
+
+            // فقط یک بار نصب شود (با هر rerun دوباره نصب نشود)
+            if (win.__deletePopupPositionInstalled) { return; }
+            win.__deletePopupPositionInstalled = true;
+
+            var GAP_PX = 4;        // فاصله‌ی منو تا سه‌نقطه
+            var EDGE_PX = 8;       // حداقل فاصله از لبه‌ی پنجره / نوار کناری
+
+            var busy = false;
+            var observer = null;
+
+            function findPopup(del) {
+                var pop = del.closest('[data-baseweb="popover"]');
+                if (pop) { return pop; }
+                var el = del.parentElement;
+                while (el && el !== doc.body) {
+                    var pos = win.getComputedStyle(el).position;
+                    if (pos === "absolute" || pos === "fixed") { return el; }
+                    el = el.parentElement;
+                }
+                return null;
+            }
+
+            function place() {
+                var del = doc.querySelector(
+                    '[class*="st-key-delete_option_"] button'
+                );
+                if (!del) { return; }
+
+                var holder = del.closest('[class*="st-key-delete_option_"]');
+                var m = /st-key-delete_option_([^ ]+)/.exec(holder.className);
+                if (!m) { return; }
+
+                // سه‌نقطه‌ی همان ردیفی که منویش باز شده
+                var anchor = doc.querySelector(
+                    '.st-key-menu_toggle_' + m[1] + ' button'
+                );
+                var pop = findPopup(del);
+                if (!anchor || !pop) { return; }
+
+                busy = true;
+
+                // اندازه‌گیری از جای طبیعی پاپ‌آپ (بدون جابه‌جایی قبلی)
+                pop.style.setProperty("translate", "0px 0px", "important");
+                var a = anchor.getBoundingClientRect();
+                var b = pop.getBoundingClientRect();
+
+                // محدوده‌ی مجاز: نوار کناری (اگر هست) وگرنه کل پنجره
+                var sb = doc.querySelector('[data-testid="stSidebar"]');
+                var box = sb ? sb.getBoundingClientRect() : null;
+                var minLeft = (box ? Math.max(box.left, 0) : 0) + EDGE_PX;
+                var maxRight = (box ? Math.min(box.right, win.innerWidth)
+                                    : win.innerWidth) - EDGE_PX;
+
+                // افقی: لبه‌ی منو هم‌راستای لبه‌ی همان سمتِ سه‌نقطه
+                var targetLeft;
+                if (a.left + a.width / 2 < (minLeft + maxRight) / 2) {
+                    targetLeft = a.left;              // سه‌نقطه سمت چپ
+                } else {
+                    targetLeft = a.right - b.width;   // سه‌نقطه سمت راست
+                }
+                if (targetLeft + b.width > maxRight) { targetLeft = maxRight - b.width; }
+                if (targetLeft < minLeft) { targetLeft = minLeft; }
+
+                // عمودی: درست زیر سه‌نقطه؛ اگر جا نبود بالای آن
+                var targetTop = a.bottom + GAP_PX;
+                if (targetTop + b.height > win.innerHeight - EDGE_PX) {
+                    targetTop = a.top - GAP_PX - b.height;
+                }
+                if (targetTop < EDGE_PX) { targetTop = EDGE_PX; }
+
+                var dx = targetLeft - b.left;
+                var dy = targetTop - b.top;
+
+                pop.style.setProperty(
+                    "translate", dx + "px " + dy + "px", "important"
+                );
+
+                observer.takeRecords();
+                busy = false;
+            }
+
+            observer = new win.MutationObserver(function () {
+                if (!busy) { place(); }
+            });
+
+            observer.observe(doc.body, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ["style"]
+            });
+
+            win.addEventListener("resize", place);
+        })();
+        </script>
+        """,
+        height=0
+    )
+
+
+# جمله‌های چرخان زیر عنوان (تایپ‌شونده). جمله‌ی اول جمله‌ی پیش‌فرض/پشتیبان است.
+HERO_TYPING_MESSAGES = [
+    "هوشمندانه انتخاب کن، آسوده پرواز کن",
+    "ارزان‌ترین پروازها را پیدا کن",
+    "مقصدت را بگو، بقیه‌اش با من ✈️",
+    "آماده‌ای پرواز کنیم؟",
+]
+
+
+def render_header() -> None:
+    """رندر کارت اصلی، لوگو، عنوان ثابت و زیرعنوان تایپ‌شونده.
+    عنوان اصلی ثابت است و فقط زیرعنوان با inject_hero_typing() متحرک می‌شود."""
+
+    fallback = HERO_TYPING_MESSAGES[0]
+
+    st.markdown(
+        '<div class="main-card">'
+        '<div class="logo">✈️</div>'
+        '<div class="title">دستیار هوشمند بلیط</div>'
+        '<div class="subtitle">'
+        f'<span class="hero-typed-text" data-fallback="{fallback}"></span>'
+        '<span class="hero-caret"></span>'
+        '</div>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+
+def inject_hero_typing() -> None:
+    """انیمیشن تایپ زیرعنوان (حرف‌به‌حرف، مکث، پاک کردن، جمله‌ی بعد).
+
+    - عنوان اصلی دست‌نخورده می‌ماند؛ فقط span مخصوص زیرعنوان عوض می‌شود.
+    - حلقه در هر tick عنصر را دوباره پیدا می‌کند، پس اگر Streamlit
+      هنگام rerun آن را دوباره بسازد انیمیشن ادامه پیدا می‌کند.
+    - وضعیت (جمله/حرف) روی window ذخیره می‌شود و یک watchdog تضمین
+      می‌کند اگر iframe حذف و دوباره ساخته شد، حلقه از همان‌جا ادامه دهد.
+    - اگر کاربر «کاهش حرکت» را خواسته باشد، هیچ انیمیشنی اجرا نمی‌شود
+      و جمله‌ی اول ثابت نمایش داده می‌شود.
+    """
+
+    script = """
+    <script>
+    (function () {
+        var win = window.parent;
+        var doc = win.document;
+
+        var MESSAGES = __MESSAGES__;
+
+        var TYPE_MIN = 130, TYPE_MAX = 170;   // ms برای هر حرف هنگام تایپ (کندتر = عدد بزرگ‌تر)
+        var DEL_MIN  = 28,  DEL_MAX  = 42;    // ms برای هر حرف هنگام پاک شدن
+        var HOLD_MIN = 1500, HOLD_MAX = 2500; // مکث بعد از کامل شدن جمله
+        var GAP_MS   = 450;                   // مکث بین پاک شدن و جمله‌ی بعد
+
+        var reduce = win.matchMedia &&
+            win.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (reduce) { return; }
+
+        function rnd(a, b) { return a + Math.random() * (b - a); }
+
+        // تقسیم به grapheme تا ایموجی‌ها (مثل ✈️) نیمه‌کاره نمایش داده نشوند
+        function split(text) {
+            try {
+                if (win.Intl && win.Intl.Segmenter) {
+                    var seg = new win.Intl.Segmenter("fa", { granularity: "grapheme" });
+                    return Array.from(seg.segment(text), function (x) { return x.segment; });
+                }
+            } catch (e) {}
+            return Array.from(text);
+        }
+
+        var chars = MESSAGES.map(split);
+
+        // وضعیت مشترک؛ روی window می‌ماند تا با ساخته شدن دوباره‌ی iframe
+        // انیمیشن از اول شروع نشود
+        var st = win.__heroTyping || (win.__heroTyping = {
+            msg: 0, pos: 0, phase: "type", beat: 0
+        });
+
+        var timer = null;
+
+        // بیشترین فاصله‌ی دو tick (مکث ۲.۵ ثانیه‌ای) + حاشیه؛ بعد از آن
+        // حلقه مرده حساب می‌شود و watchdog آن را دوباره راه می‌اندازد
+        function alive() { return Date.now() - st.beat < 4500; }
+
+        function render() {
+            var el = doc.querySelector(".hero-typed-text");
+            if (!el) { return; }
+
+            var box = el.parentElement;
+            if (box && box.getAttribute("data-typing") !== "on") {
+                box.setAttribute("data-typing", "on");
+            }
+
+            var text = chars[st.msg].slice(0, st.pos).join("");
+            if (el.textContent !== text) { el.textContent = text; }
+        }
+
+        function step() {
+            st.beat = Date.now();
+            var delay = 100;
+            var len = chars[st.msg].length;
+
+            if (st.phase === "type") {
+                if (st.pos < len) {
+                    st.pos += 1;
+                    render();
+                    delay = rnd(TYPE_MIN, TYPE_MAX);
+                } else {
+                    render();
+                    st.phase = "hold";
+                    delay = rnd(HOLD_MIN, HOLD_MAX);
+                }
+            } else if (st.phase === "hold") {
+                st.phase = "delete";
+                delay = 60;
+            } else if (st.phase === "delete") {
+                if (st.pos > 0) {
+                    st.pos -= 1;
+                    render();
+                    delay = rnd(DEL_MIN, DEL_MAX);
+                } else {
+                    render();
+                    st.phase = "gap";
+                    delay = GAP_MS;
+                }
+            } else {
+                st.msg = (st.msg + 1) % chars.length;
+                st.pos = 0;
+                st.phase = "type";
+                delay = 120;
+            }
+
+            timer = setTimeout(step, delay);
+        }
+
+        function start() {
+            if (alive()) { return; }
+            st.beat = Date.now();
+            step();
+        }
+
+        start();
+
+        // اگر حلقه‌ی iframe دیگری مرده باشد، این نمونه ادامه‌اش را برمی‌دارد
+        setInterval(start, 1000);
+    })();
+    </script>
+    """.replace(
+        "__MESSAGES__",
+        json.dumps(HERO_TYPING_MESSAGES, ensure_ascii=False)
+    )
+
+    components.html(script, height=0)
+
+
+
+def inject_delete_popup_position_legacy_3cm() -> None:
     """جای دکمه‌ی «حذف» را برای هر ردیف گفتگو از روی جای واقعی سه‌نقطه‌ی
     همان ردیف حساب می‌کند (نه مختصات ثابت صفحه):
       - دقیقاً هم‌تراز عمودی با سه‌نقطه‌ی همان ردیف
@@ -1308,28 +1971,449 @@ def inject_delete_popup_position() -> None:
     )
 
 
-def render_header() -> None:
-    """رندر کارت اصلی، لوگو، عنوان و زیرعنوان."""
-    # هدر
-    st.markdown("""
-    
-    <div class="main-card">
-    
-    <div class="logo">✈️</div>
-    
-    <div class="title">
-    
-    دستیار هوشمند بلیط
-    
-    </div>
-    
-    <div class="subtitle">
-    
-    ✨✈️ هوشمندانه انتخاب کن، آسوده پرواز کن 
-    
-    </div>
-    
-    """, unsafe_allow_html=True)
+def inject_cabin_filter_panel_style() -> None:
+    """استایل پنل کوچک «کلاس پرواز» سمت چپ صفحه (نتایج پرواز).
+
+    پنل یک st.container با کلید cabin_filter_panel است که با CSS
+    ثابت (fixed) سمت چپ صفحه می‌نشیند و با یک انیمیشن نرم از چپ باز
+    می‌شود. در صفحه‌های کوچک (موبایل / تبلت) ثابت نیست و ساده بالای
+    کارت‌ها قرار می‌گیرد تا روی آن‌ها نیفتد."""
+
+    st.markdown(
+        """
+    <style>
+
+    /* ---------- پنل «کلاس پرواز» (فیلتر نتایج) ---------- */
+
+    .cabin-filter-head{
+        direction:rtl;
+        display:flex;
+        align-items:center;
+        gap:10px;
+        margin:0 0 10px 0;
+        padding-bottom:12px;
+        border-bottom:1px solid rgba(72,128,145,.18);
+    }
+
+    .cabin-filter-icon{
+        flex:0 0 auto;
+        width:34px;
+        height:34px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        border-radius:11px;
+        font-size:17px;
+        line-height:1;
+        color:#ffffff;
+        background:linear-gradient(135deg,#5b9aab 0%,#488091 55%,#3d6d7b 100%);
+        box-shadow:0 5px 12px rgba(72,128,145,.35);
+    }
+
+    .cabin-filter-texts{
+        display:flex;
+        flex-direction:column;
+        gap:1px;
+        min-width:0;
+    }
+
+    .cabin-filter-title{
+        font-family:'Vazirmatn', sans-serif !important;
+        font-weight:800;
+        font-size:15px;
+        line-height:1.4;
+        color:#1f2937;
+        direction:rtl;
+        text-align:right;
+        margin:0;
+    }
+
+    .cabin-filter-sub{
+        font-family:'Vazirmatn', sans-serif !important;
+        font-weight:500;
+        font-size:11.5px;
+        line-height:1.4;
+        color:#6b7280;
+        direction:rtl;
+        text-align:right;
+    }
+
+    .st-key-cabin_filter_panel{
+        box-sizing:border-box;
+        direction:rtl;
+        background:linear-gradient(
+            160deg,
+            rgba(255,255,255,.92) 0%,
+            rgba(240,248,250,.86) 100%
+        );
+        backdrop-filter:blur(18px) saturate(140%);
+        -webkit-backdrop-filter:blur(18px) saturate(140%);
+        border:1px solid rgba(72,128,145,.26);
+        border-radius:20px;
+        padding:16px 14px 12px 14px !important;
+        margin-bottom:14px;
+        box-shadow:
+            0 14px 34px rgba(72,128,145,.18),
+            0 2px 6px rgba(31,41,55,.05),
+            inset 0 1px 0 rgba(255,255,255,.9);
+        gap:.35rem !important;
+    }
+
+    .st-key-cabin_filter_panel label,
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"]{
+        direction:rtl !important;
+    }
+
+    /* هر گزینه یک ردیف قابل‌کلیک و کامل است */
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label{
+        width:100%;
+        box-sizing:border-box;
+        display:flex !important;
+        align-items:center;
+        gap:10px;
+        padding:9px 11px;
+        border-radius:13px;
+        border:1px solid transparent;
+        background:rgba(255,255,255,.55);
+        cursor:pointer;
+        transition:background .18s ease, border-color .18s ease,
+                   box-shadow .18s ease, transform .18s ease;
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:hover{
+        background:rgba(72,128,145,.10);
+        border-color:rgba(72,128,145,.30);
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked){
+        background:linear-gradient(135deg, rgba(72,128,145,.16), rgba(72,128,145,.08));
+        border-color:rgba(72,128,145,.55);
+        box-shadow:0 4px 12px rgba(72,128,145,.14);
+    }
+
+    /* مربع تیک هم‌رنگ برند */
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label > span:first-of-type{
+        flex:0 0 auto;
+        width:20px !important;
+        height:20px !important;
+        border-radius:7px !important;
+        background-color:#ffffff !important;
+        border:1.5px solid #b6c9cf !important;
+        transition:background-color .18s ease, border-color .18s ease;
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked) > span:first-of-type{
+        background-color:#488091 !important;
+        border-color:#488091 !important;
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] p{
+        font-family:'Vazirmatn', sans-serif !important;
+        font-size:14px !important;
+        font-weight:600 !important;
+        color:#1f2937 !important;
+        white-space:nowrap;
+        margin:0;
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked) p{
+        color:#2b5461 !important;
+        font-weight:700 !important;
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:disabled){
+        opacity:.42;
+        cursor:not-allowed;
+        background:rgba(243,244,246,.6);
+    }
+
+    /* صفحه‌ی عریض: پنل ثابت و کوچک سمت چپ + کمی فضا برای محتوا تا
+       روی کارت‌های پرواز نیفتد */
+    @media (min-width: 1280px){
+
+        .st-key-cabin_filter_panel{
+            position:fixed !important;
+            left:14px;
+            top:150px;
+            width:204px !important;
+            z-index:999;
+            margin-bottom:0;
+
+            /* fill-mode برابر backwards: بعد از پایان انیمیشن هیچ
+               transform باقی نمی‌ماند (transform عناصر fixed را خراب می‌کند) */
+            animation:cabin-panel-in .42s cubic-bezier(.22,.8,.3,1) backwards;
+        }
+
+        .block-container:has(.st-key-cabin_filter_panel),
+        [data-testid="stMainBlockContainer"]:has(.st-key-cabin_filter_panel){
+            padding-left:236px !important;
+        }
+    }
+
+    @keyframes cabin-panel-in{
+        from{ opacity:0; transform:translateX(-28px); }
+        to{   opacity:1; transform:translateX(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+        .st-key-cabin_filter_panel{ animation:none !important; }
+    }
+
+    </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+# ---------------------------------------------------------------------
+# لودر «در حال جستجوی پروازها»: حلقه‌ی نیم‌آبی / نیم‌نارنجی (خط‌چین) با دو
+# هواپیمای آبی و نارنجی که روی حلقه می‌چرخند. به‌جای حالت «هنگ کردن»
+# صفحه، تا پایان جستجو روی صفحه می‌ماند.
+# ---------------------------------------------------------------------
+_PLANE_PATH = (
+    "M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5"
+    "V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"
+)
+
+SEARCH_LOADER_SVG = (
+    '<svg class="fsl-spin" viewBox="-60 -60 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+    # نیمه‌ی آبی (از بالا-چپ، ساعت‌گرد تا پایین-راست)
+    '<path d="M-31.1 -31.1 A44 44 0 0 1 31.1 31.1" fill="none" stroke="#1b5a55" '
+    'stroke-width="5" stroke-dasharray="11 6.27" stroke-linecap="butt"/>'
+    # نیمه‌ی نارنجی (از پایین-راست، ساعت‌گرد تا بالا-چپ)
+    '<path d="M31.1 31.1 A44 44 0 0 1 -31.1 -31.1" fill="none" stroke="#ff8a26" '
+    'stroke-width="5" stroke-dasharray="11 6.27" stroke-linecap="butt"/>'
+    # هواپیمای آبی (ابتدای نیمه‌ی آبی) و هواپیمای نارنجی (ابتدای نیمه‌ی نارنجی)؛
+    # بدنه‌ی هواپیما در جهت حرکت (مماس بر حلقه) می‌چرخد
+    '<g transform="rotate(225) translate(44 0)">'
+    '<circle r="12.5" fill="#1b5a55"/>'
+    f'<path transform="rotate(180) scale(.72) translate(-12 -12)" fill="#ffffff" d="{_PLANE_PATH}"/>'
+    '</g>'
+    '<g transform="rotate(45) translate(44 0)">'
+    '<circle r="12.5" fill="#ff8a26"/>'
+    f'<path transform="rotate(180) scale(.72) translate(-12 -12)" fill="#ffffff" d="{_PLANE_PATH}"/>'
+    '</g>'
+    '</svg>'
+)
+
+SEARCH_LOADER_TEXT = "در حال جستجوی پروازها…"
+
+_SEARCH_LOADER_JS = """
+<script>
+(function () {
+    // کد اصلی داخل صفحه‌ی والد (نه iframe) نصب می‌شود؛ چون iframe بعد از
+    // هر rerun ممکن است حذف شود و تایمرهایش بمیرند
+    function main() {
+        var win = window, doc = document;
+        if (win.__flightSearchLoader) { return; }
+        win.__flightSearchLoader = true;
+
+        // فقط دکمه‌ای که جستجوی واقعی پروازها را شروع می‌کند
+        var TRIGGER = '.st-key-confirm_flight_button button';
+
+        var ov = null;
+        var shownAt = 0;
+        var sawBusy = false;
+        var idleSince = 0;
+        var poll = null;
+
+        function build() {
+            if (ov && doc.body.contains(ov)) { return ov; }
+            ov = doc.createElement('div');
+            ov.id = 'flight-search-loader';
+            ov.setAttribute('role', 'status');
+            ov.setAttribute('aria-live', 'polite');
+            ov.innerHTML = '<div class="fsl-box">' + '__SVG__' + '<div class="fsl-text">__TEXT__</div>' + '</div>';
+            doc.body.appendChild(ov);
+            return ov;
+        }
+
+        function scriptState() {
+            var app = doc.querySelector('[data-testid="stApp"]');
+            return app ? app.getAttribute('data-test-script-state') : null;
+        }
+
+        function stopPoll() {
+            if (poll) { win.clearInterval(poll); poll = null; }
+        }
+
+        function hide() {
+            stopPoll();
+            if (ov) { ov.classList.remove('fsl-on'); }
+        }
+
+        function tick() {
+            var s = scriptState();
+            var age = Date.now() - shownAt;
+
+            if (age > 180000) { hide(); return; }        // سقف ایمنی
+
+            if (s === null) {                            // نسخه‌ای که نشانگر وضعیت ندارد
+                if (age > 60000) { hide(); }
+                return;
+            }
+
+            if (s === 'running' || s === 'rerunRequested') {
+                sawBusy = true;
+                idleSince = 0;
+                return;
+            }
+
+            // اجرا تمام شده: کمی صبر می‌کنیم تا rerunِ پشت‌سرهم تمام شود
+            if (sawBusy) {
+                if (!idleSince) { idleSince = Date.now(); }
+                if (Date.now() - idleSince > 450) { hide(); }
+            } else if (age > 2500) {
+                hide();                                  // اصلاً اجرایی شروع نشد
+            }
+        }
+
+        // هم‌عرض و هم‌تراز با ناحیه‌ی اصلی صفحه (کنار نوار کناری)، مثل کادر تایپ
+        function align() {
+            var main = doc.querySelector('[data-testid="stMain"]');
+            if (!main || !ov) { return; }
+            var r = main.getBoundingClientRect();
+            ov.style.left = Math.max(r.left, 0) + 'px';
+            ov.style.right = Math.max(win.innerWidth - r.right, 0) + 'px';
+        }
+
+        function show() {
+            build();
+            align();
+            ov.classList.add('fsl-on');
+            shownAt = Date.now();
+            sawBusy = false;
+            idleSince = 0;
+            stopPoll();
+            poll = win.setInterval(tick, 200);
+        }
+
+        doc.addEventListener('click', function (e) {
+            var t = e.target;
+            if (t && t.closest && t.closest(TRIGGER)) { show(); }
+        }, true);
+    }
+
+    try {
+        var parentDoc = window.parent.document;
+        var tag = parentDoc.createElement('script');
+        tag.textContent = '(' + main.toString() + ')();';
+        parentDoc.head.appendChild(tag);
+    } catch (err) {
+        console.error('search loader install failed', err);
+    }
+})();
+</script>
+"""
+
+
+def inject_search_loader() -> None:
+    """لودر تمام‌صفحه‌ی جستجوی پرواز (حلقه‌ی نیم‌آبی/نیم‌نارنجی + دو هواپیما).
+
+    با کلیک روی «تأیید و جستجوی پرواز» فوراً نمایش داده می‌شود و وقتی
+    اجرای Streamlit تمام شد (نتایج آماده شد) خودکار محو می‌شود."""
+
+    st.markdown(
+        """
+    <style>
+
+    /* لودر جستجو: به‌جای وسط صفحه، مثل کادر تایپ کاربر پایین صفحه می‌نشیند و
+       هواپیمای چرخان گوشه‌ی سمت چپ همان کادر است. لایه‌ی بیرونی شفاف است و فقط
+       جلوی کلیک‌های اضافه را می‌گیرد */
+    #flight-search-loader{
+        position:fixed;
+        top:0;
+        bottom:0;
+        left:0;
+        right:0;
+        z-index:2147483000;
+
+        display:flex;
+        align-items:flex-end;
+        justify-content:center;
+        box-sizing:border-box;
+        padding:0 16px 28px 16px;
+
+        background:transparent;
+
+        opacity:0;
+        visibility:hidden;
+        pointer-events:none;
+        transition:opacity .22s ease, visibility 0s linear .22s;
+    }
+
+    #flight-search-loader.fsl-on{
+        opacity:1;
+        visibility:visible;
+        pointer-events:auto;
+        transition:opacity .22s ease, visibility 0s;
+    }
+
+    #flight-search-loader .fsl-box{
+        direction:ltr;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+
+        width:min(700px, 100%);
+        min-height:64px;
+        box-sizing:border-box;
+        padding:8px 14px 8px 12px;
+
+        background:#ffffff;
+        border:1px solid #d1d5db;
+        border-radius:20px;
+        box-shadow:0 5px 20px rgba(0,0,0,.08);
+    }
+
+    #flight-search-loader .fsl-spin{
+        flex:0 0 auto;
+        width:46px;
+        height:46px;
+        animation:fsl-rotate 2.4s linear infinite;
+        filter:drop-shadow(0 3px 6px rgba(27,90,85,.18));
+    }
+
+    #flight-search-loader .fsl-text{
+        flex:1 1 auto;
+        font-family:'Vazirmatn', sans-serif;
+        font-weight:700;
+        font-size:15px;
+        color:#1f2937;
+        direction:rtl;
+        text-align:right;
+        animation:fsl-pulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes fsl-rotate{
+        to{ transform:rotate(360deg); }
+    }
+
+    @keyframes fsl-pulse{
+        0%, 100%{ opacity:.55; }
+        50%{      opacity:1;   }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+        #flight-search-loader .fsl-spin{ animation-duration:7s; }
+        #flight-search-loader .fsl-text{ animation:none; }
+    }
+
+    </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    script = (
+        _SEARCH_LOADER_JS
+        .replace("__SVG__", SEARCH_LOADER_SVG)
+        .replace("__TEXT__", SEARCH_LOADER_TEXT)
+    )
+
+    components.html(script, height=0)
+
+
 
 def inject_login_style():
 
@@ -1510,6 +2594,7 @@ def inject_auth_style() -> None:
     position:fixed !important;
     top:20px !important;
     left:30px !important;
+    right:auto !important;
     z-index:999999 !important;
 
     display:flex !important;
@@ -1610,7 +2695,8 @@ def inject_user_box_style() -> None:
     position: fixed !important;
 
     bottom: 0 !important;
-    left: 0 !important;
+    right: 0 !important;
+    left: auto !important;
 
     width: 21rem !important;
 padding: 10px 16px 30px 16px !important;
