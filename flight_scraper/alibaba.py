@@ -160,7 +160,7 @@ AIRLINE_LOGOS = {
     "چابهار": {
             "logo":"airlines/RI.svg"
         },
-    "ساها ایر": {
+    "ساها": {
             "logo":"airlines/SA.svg"
         },
     "قشم ایر": {
@@ -180,6 +180,9 @@ AIRLINE_LOGOS = {
         },
     "فلای پرشیا": {
             "logo":"airlines/FP.svg"
+        },
+    "هواپیمایی مهر": {
+            "logo":"airlines/MH.svg"
         },
 }
 def select_departure_date(page, date_str):

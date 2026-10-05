@@ -701,7 +701,6 @@ elif current_ui == "search":
             k = detect_cabin_key(f)
             counts[k] = counts.get(k, 0) + 1
 
-        present = [(k, l) for k, l in CABIN_FILTER_OPTIONS if k in counts]
         preferred = flight_state.get("cabin_class")
         search_id = flight_state.get("search_id", "")
 
@@ -728,19 +727,31 @@ elif current_ui == "search":
 
             for key, label in CABIN_PANEL_OPTIONS:
                 count = counts.get(key, 0)
-                default = count > 0 and (
-                    (not preferred_available) or preferred == key
-                )
+
+                # کلاسی که در نتایج پروازی ندارد اصلاً نمایش داده نمی‌شود
+                if count == 0:
+                    continue
+
+                default = (not preferred_available) or preferred == key
 
                 if st.checkbox(
                     f"{label}  ({count})",
                     value=default,
                     key=f"cabin_filter_{search_id}_{key}",
-                    disabled=(count == 0),
                 ):
                     selected.add(key)
 
+            # اولویت قیمت: از ارزان‌ترین تا گران‌ترین
+            price_first = st.checkbox(
+                "قیمت (ارزان‌ترین تا گران‌ترین)",
+                value=(current_sort in (None, "", "cheapest")),
+                key=f"cabin_filter_{search_id}_price_asc",
+            )
+
         visible = [f for f in flights if detect_cabin_key(f) in selected]
+
+        if price_first:
+            visible = sorted(visible, key=lambda f: f.get("price_value", 0))
 
         if not visible:
             st.warning("حداقل یک نوع پرواز را انتخاب کنید.")

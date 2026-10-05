@@ -1983,6 +1983,19 @@ def inject_cabin_filter_panel_style() -> None:
         """
     <style>
 
+    /* موقع جستجو (rerun) استریم‌لیت عناصر قبلی را کم‌رنگ می‌کند؛ این را خاموش
+       می‌کنیم تا صفحه و نوار کناری همان‌طور که هستند بمانند */
+    [data-stale="true"],
+    .stale-element,
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] [data-stale="true"],
+    [data-testid="stMain"] [data-stale="true"],
+    [data-testid="stAppViewContainer"] [data-stale="true"]{
+        opacity:1 !important;
+        filter:none !important;
+        transition:none !important;
+    }
+
     /* ---------- پنل «کلاس پرواز» (فیلتر نتایج) ---------- */
 
     .cabin-filter-head{
@@ -2064,31 +2077,30 @@ def inject_cabin_filter_panel_style() -> None:
         direction:rtl !important;
     }
 
-    /* هر گزینه یک ردیف قابل‌کلیک و کامل است */
+    /* هر گزینه یک ردیف قابل‌کلیک است؛ بدون کادر جداگانه چون پنل یک کادر کلی دارد */
     .st-key-cabin_filter_panel [data-testid="stCheckbox"] label{
         width:100%;
         box-sizing:border-box;
         display:flex !important;
         align-items:center;
         gap:10px;
-        padding:9px 11px;
-        border-radius:13px;
-        border:1px solid transparent;
-        background:rgba(255,255,255,.55);
+        padding:8px 6px;
+        border:none !important;
+        border-radius:10px;
+        background:transparent !important;
+        box-shadow:none !important;
         cursor:pointer;
-        transition:background .18s ease, border-color .18s ease,
-                   box-shadow .18s ease, transform .18s ease;
+        transition:background .18s ease;
     }
 
     .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:hover{
-        background:rgba(72,128,145,.10);
-        border-color:rgba(72,128,145,.30);
+        background:rgba(72,128,145,.08) !important;
     }
 
     .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked){
-        background:linear-gradient(135deg, rgba(72,128,145,.16), rgba(72,128,145,.08));
-        border-color:rgba(72,128,145,.55);
-        box-shadow:0 4px 12px rgba(72,128,145,.14);
+        background:transparent !important;
+        border:none !important;
+        box-shadow:none !important;
     }
 
     /* مربع تیک هم‌رنگ برند */
@@ -2102,9 +2114,16 @@ def inject_cabin_filter_panel_style() -> None:
         transition:background-color .18s ease, border-color .18s ease;
     }
 
-    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked) > span:first-of-type{
-        background-color:#488091 !important;
-        border-color:#488091 !important;
+    /* مربع تیک‌خورده نارنجی (به‌جای قرمز پیش‌فرض استریم‌لیت) */
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked) > span:first-of-type,
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked) [role="checkbox"],
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] [data-baseweb="checkbox"]:has(input:checked) > span:first-of-type{
+        background-color:#f97316 !important;
+        border-color:#f97316 !important;
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] input{
+        accent-color:#f97316;
     }
 
     .st-key-cabin_filter_panel [data-testid="stCheckbox"] p{
@@ -2117,7 +2136,7 @@ def inject_cabin_filter_panel_style() -> None:
     }
 
     .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked) p{
-        color:#2b5461 !important;
+        color:#9a3f0b !important;
         font-weight:700 !important;
     }
 
@@ -2268,13 +2287,63 @@ _SEARCH_LOADER_JS = """
             }
         }
 
-        // هم‌عرض و هم‌تراز با ناحیه‌ی اصلی صفحه (کنار نوار کناری)، مثل کادر تایپ
+        // اندازه و جای آخرین کادر تایپ دیده‌شده را نگه می‌داریم؛ چون موقع جستجو
+        // کادر تایپ روی صفحه نیست و لودر باید دقیقاً همان‌جا و همان‌اندازه بنشیند
+        var lastInput = null;
+
+        function rememberInput() {
+            var el = doc.querySelector('[data-testid="stChatInput"]');
+            if (!el) { return; }
+            var r = el.getBoundingClientRect();
+            if (r.width > 50 && r.height > 20) {
+                lastInput = {
+                    left: r.left,
+                    width: r.width,
+                    height: r.height,
+                    bottom: win.innerHeight - r.bottom
+                };
+            }
+        }
+        win.setInterval(rememberInput, 400);
+        win.addEventListener('resize', function () { lastInput = null; rememberInput(); });
+
         function align() {
-            var main = doc.querySelector('[data-testid="stMain"]');
-            if (!main || !ov) { return; }
-            var r = main.getBoundingClientRect();
-            ov.style.left = Math.max(r.left, 0) + 'px';
-            ov.style.right = Math.max(win.innerWidth - r.right, 0) + 'px';
+            if (!ov) { return; }
+            var box = ov.querySelector('.fsl-box');
+            if (!box) { return; }
+
+            rememberInput();                       // اگر کادر تایپ الان هست، دقیق‌ترین مقدار
+
+            var g = lastInput;
+            if (!g) {
+                // کادر تایپ هنوز دیده نشده: از ستون اصلی صفحه تخمین می‌زنیم
+                var c = doc.querySelector('[data-testid="stMainBlockContainer"]') ||
+                        doc.querySelector('[data-testid="stMain"]');
+                if (!c) { return; }
+                var r = c.getBoundingClientRect();
+                var cs = win.getComputedStyle(c);
+                var pl = parseFloat(cs.paddingLeft) || 0;
+                var pr = parseFloat(cs.paddingRight) || 0;
+                g = {
+                    left: r.left + pl,
+                    width: Math.max(r.width - pl - pr, 240),
+                    height: 58,
+                    bottom: 32
+                };
+            }
+
+            box.style.left = g.left + 'px';
+            box.style.width = g.width + 'px';
+            box.style.height = g.height + 'px';
+            box.style.bottom = g.bottom + 'px';
+            box.classList.add('fsl-placed');
+
+            var spin = box.querySelector('.fsl-spin');
+            if (spin) {
+                var d = Math.max(Math.min(g.height - 12, 46), 24);
+                spin.style.width = d + 'px';
+                spin.style.height = d + 'px';
+            }
         }
 
         function show() {
@@ -2317,9 +2386,9 @@ def inject_search_loader() -> None:
         """
     <style>
 
-    /* لودر جستجو: به‌جای وسط صفحه، مثل کادر تایپ کاربر پایین صفحه می‌نشیند و
-       هواپیمای چرخان گوشه‌ی سمت چپ همان کادر است. لایه‌ی بیرونی شفاف است و فقط
-       جلوی کلیک‌های اضافه را می‌گیرد */
+    /* لودر جستجو: دقیقاً هم‌اندازه و هم‌جای کادر تایپ کاربر (اندازه و جایش را
+       جاوااسکریپت از خود کادر تایپ برمی‌دارد). لایه‌ی بیرونی کاملاً شفاف است،
+       صفحه را کم‌رنگ نمی‌کند و فقط جلوی کلیک‌های اضافه را می‌گیرد */
     #flight-search-loader{
         position:fixed;
         top:0;
@@ -2327,13 +2396,6 @@ def inject_search_loader() -> None:
         left:0;
         right:0;
         z-index:2147483000;
-
-        display:flex;
-        align-items:flex-end;
-        justify-content:center;
-        box-sizing:border-box;
-        padding:0 16px 28px 16px;
-
         background:transparent;
 
         opacity:0;
@@ -2350,16 +2412,21 @@ def inject_search_loader() -> None:
     }
 
     #flight-search-loader .fsl-box{
+        position:fixed;
+        /* مقدار پیش‌فرض تا وقتی جاوااسکریپت اندازه‌ی واقعی را بگذارد */
+        left:50%;
+        bottom:32px;
+        width:min(700px, 92vw);
+        height:58px;
+        transform:translateX(-50%);
+
         direction:ltr;
         display:flex;
         align-items:center;
         justify-content:space-between;
         gap:12px;
-
-        width:min(700px, 100%);
-        min-height:64px;
         box-sizing:border-box;
-        padding:8px 14px 8px 12px;
+        padding:0 12px;
 
         background:#ffffff;
         border:1px solid #d1d5db;
@@ -2367,10 +2434,15 @@ def inject_search_loader() -> None:
         box-shadow:0 5px 20px rgba(0,0,0,.08);
     }
 
+    #flight-search-loader .fsl-box.fsl-placed{
+        transform:none;
+    }
+
     #flight-search-loader .fsl-spin{
         flex:0 0 auto;
-        width:46px;
-        height:46px;
+        width:42px;
+        height:42px;
+        max-height:calc(100% - 8px);
         animation:fsl-rotate 2.4s linear infinite;
         filter:drop-shadow(0 3px 6px rgba(27,90,85,.18));
     }

@@ -193,6 +193,20 @@ def validate_cities(state: FlightState) -> dict:
             "ui_type": "chat_input",
             "flights": [],
         }
+        # مبدأ و مقصد نباید یکسان باشند
+    if origin and destination and origin == destination:
+        return {
+            **state,
+            "origin": None,        # خالی کردن مبدأ
+            "destination": None,   # خالی کردن مقصد
+            "current_step": "same_city",
+            "assistant_message": (
+                "مبدأ و مقصد نمی‌تواند یکسان باشد. "
+                "لطفاً دوباره مبدأ و مقصد را وارد کنید."
+            ),
+            "ui_type": "chat_input",
+            "flights": [],
+        }
 
     if origin and destination:
         route_error = validate_international_route(origin, destination)
@@ -217,9 +231,8 @@ def validate_cities(state: FlightState) -> dict:
  
  
 def route_city_validation(state: FlightState) -> str:
-    if state.get("current_step") == "invalid_city":
+    if state.get("current_step") in ("invalid_city", "same_city"):
         return "invalid"
- 
     return "valid"
 
 

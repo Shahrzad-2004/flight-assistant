@@ -12,7 +12,7 @@ import streamlit.components.v1 as components
 
 
 from cookie_manager import cookies
-from flight_graph import flight_graph
+from flight_graph import flight_graph,detect_cabin_key
 from chat_database import (
     save_message,
     load_messages,
@@ -147,6 +147,13 @@ def sort_flights_locally(sort_value):
     flight_state["sort_by"] = sort_value
 
     st.session_state["flight_state"] = flight_state
+
+    # تیک «قیمت» پنل کلاس پرواز فقط با مرتب‌سازی «ارزان‌ترین» روشن بماند تا
+    # با ترتیب انتخاب‌شده‌ی کاربر (مثلاً زودترین) تداخل نکند
+    search_id = flight_state.get("search_id", "")
+    st.session_state[f"cabin_filter_{search_id}_price_asc"] = (
+        sort_value == "cheapest"
+    )
 def select_passenger_option(option):
 
     current_state = st.session_state["flight_state"].copy()

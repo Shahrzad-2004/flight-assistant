@@ -17,8 +17,6 @@ def create_users_table():
 
         email TEXT UNIQUE NOT NULL,
 
-        password_hash BLOB,
-
         google_id TEXT UNIQUE,
 
         name TEXT,

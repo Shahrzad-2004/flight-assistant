@@ -132,6 +132,9 @@ AIRLINE_LOGOS = {
     "فلای پرشیا": {
             "logo":"airlines/FP.svg"
         },
+    "مهر": {
+            "logo":"airlines/MH.svg"
+        },
 }
  
  
