@@ -147,13 +147,18 @@ def sort_flights_locally(sort_value):
     flight_state["sort_by"] = sort_value
 
     st.session_state["flight_state"] = flight_state
+def toggle_sort_option(widget_key):
+    """هندلر رادیو باتن «مرتب‌سازی بر اساس» داخل پنل فیلتر.
 
-    # تیک «قیمت» پنل کلاس پرواز فقط با مرتب‌سازی «ارزان‌ترین» روشن بماند تا
-    # با ترتیب انتخاب‌شده‌ی کاربر (مثلاً زودترین) تداخل نکند
-    search_id = flight_state.get("search_id", "")
-    st.session_state[f"cabin_filter_{search_id}_price_asc"] = (
-        sort_value == "cheapest"
-    )
+    مقدار انتخاب‌شده از خود رادیو خوانده می‌شود و همان منطق قبلی
+    sort_flights_locally اجرا می‌شود."""
+
+    sort_value = st.session_state.get(widget_key)
+
+    if sort_value:
+        sort_flights_locally(sort_value)
+
+
 def select_passenger_option(option):
 
     current_state = st.session_state["flight_state"].copy()

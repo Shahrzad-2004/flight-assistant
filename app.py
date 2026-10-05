@@ -33,7 +33,7 @@ from styles import (
 )
 from ui_handlers import (
     scroll_to_bottom,
-    sort_flights_locally,
+    toggle_sort_option,
     select_passenger_option,
     save_passenger_counts,
     confirm_flight,
@@ -129,6 +129,16 @@ CABIN_PANEL_OPTIONS = [
     ("economy", "اکونومی"),
     ("business", "بیزینس"),
 ]
+# گزینه‌های «مرتب‌سازی بر اساس» داخل همان پنل (مقدارها همان مقدارهای
+# sort_flights_locally هستند)
+SORT_PANEL_OPTIONS = [
+    ("cheapest", "ارزان‌ترین"),
+    ("priciest", "گران‌ترین"),
+    ("earliest", "زودترین"),
+    ("latest", "دیرترین"),
+]
+
+
 def get_cabin_label(cabin_class):
 
     cabin_labels = {
@@ -663,39 +673,6 @@ elif current_ui == "search":
             unsafe_allow_html=True
         )
         current_sort = flight_state.get("sort_by")
-        sort_col1, sort_col2, sort_col3, sort_col4 = st.columns(4)
-
-        sort_col1.button(
-            "ارزان‌ترین" + (" ✓" if current_sort == "cheapest" else ""),
-            key="local_sort_cheapest",
-            use_container_width=True,
-            on_click=sort_flights_locally,
-            args=("cheapest",)
-        )
-
-        sort_col2.button(
-            "زودترین" + (" ✓" if current_sort == "earliest" else ""),
-            key="local_sort_earliest",
-            use_container_width=True,
-            on_click=sort_flights_locally,
-            args=("earliest",)
-        )
-
-        sort_col3.button(
-            "دیرترین" + (" ✓" if current_sort == "latest" else ""),
-            key="local_sort_latest",
-            use_container_width=True,
-            on_click=sort_flights_locally,
-            args=("latest",)
-        )
-
-        sort_col4.button(
-            "گران‌ترین" + (" ✓" if current_sort == "priciest" else ""),
-            key="local_sort_priciest",
-            use_container_width=True,
-            on_click=sort_flights_locally,
-            args=("priciest",)
-        )
         counts = {}
         for f in flights:
             k = detect_cabin_key(f)
@@ -707,54 +684,76 @@ elif current_ui == "search":
         # اگر کاربر کلاسی گفته و در نتایج هست، فقط همان تیک می‌خورد؛ وگرنه همه
         preferred_available = preferred in counts
         if preferred and preferred != "unspecified" and not preferred_available:
-            st.info("پروازی با کلاس درخواستی پیدا نشد؛ سایر کلاس‌ها نمایش داده می‌شوند.")
+            st.markdown(
+                '<div class="cabin-notice cabin-notice-info">'
+                'پروازی با کلاس درخواستی پیدا نشد؛ سایر کلاس‌ها نمایش داده می‌شوند.'
+                '</div>',
+                unsafe_allow_html=True
+            )
 
-        # پنل کوچک سمت چپ: هر سه کلاس را می‌شود هم‌زمان، دوتایی یا تکی
-        # تیک زد. کلاسی که در نتایج پروازی ندارد غیرفعال نمایش داده می‌شود
+        # پنل کوچک سمت چپ: «فیلتر» شامل کلاس پرواز (هر سه کلاس را می‌شود
+        # هم‌زمان، دوتایی یا تکی تیک زد) و مرتب‌سازی. کلاسی که در نتایج
+        # پروازی ندارد اصلاً نمایش داده نمی‌شود
         selected = set()
 
         with st.container(key="cabin_filter_panel"):
 
-            st.markdown(
-                '<div class="cabin-filter-head">'
-                '<div class="cabin-filter-icon">✈</div>'
-                '<div class="cabin-filter-texts">'
-                '<div class="cabin-filter-title">کلاس پرواز</div>'
-                '<div class="cabin-filter-sub">نتایج را فیلتر کنید</div>'
-                '</div></div>',
-                unsafe_allow_html=True
-            )
+            # کارت ۲: کلاس پرواز (چک‌باکس)
+            with st.container(key="cabin_filter_card_class"):
+                st.markdown(
+                    '<div class="cabin-filter-section">کلاس پرواز</div>',
+                    unsafe_allow_html=True
+                )
 
-            for key, label in CABIN_PANEL_OPTIONS:
-                count = counts.get(key, 0)
+                for key, label in CABIN_PANEL_OPTIONS:
+                    count = counts.get(key, 0)
 
-                # کلاسی که در نتایج پروازی ندارد اصلاً نمایش داده نمی‌شود
-                if count == 0:
-                    continue
+                    if count == 0:
+                        continue
 
-                default = (not preferred_available) or preferred == key
+                    default = (not preferred_available) or preferred == key
 
-                if st.checkbox(
-                    f"{label}  ({count})",
-                    value=default,
-                    key=f"cabin_filter_{search_id}_{key}",
-                ):
-                    selected.add(key)
+                    if st.checkbox(
+                        f"{label}  ({count})",
+                        value=default,
+                        key=f"cabin_filter_{search_id}_{key}",
+                    ):
+                        selected.add(key)
 
-            # اولویت قیمت: از ارزان‌ترین تا گران‌ترین
-            price_first = st.checkbox(
-                "قیمت (ارزان‌ترین تا گران‌ترین)",
-                value=(current_sort in (None, "", "cheapest")),
-                key=f"cabin_filter_{search_id}_price_asc",
-            )
+            # کارت ۳: مرتب‌سازی (رادیو باتن؛ فقط یک گزینه)
+            with st.container(key="cabin_filter_card_sort"):
+                st.markdown(
+                    '<div class="cabin-filter-section">مرتب‌سازی بر اساس</div>',
+                    unsafe_allow_html=True
+                )
+
+                sort_values = [v for v, _ in SORT_PANEL_OPTIONS]
+                sort_labels = dict(SORT_PANEL_OPTIONS)
+                sort_radio_key = f"sort_radio_{search_id}"
+
+                st.radio(
+                    label="",
+                    options=sort_values,
+                    index=(
+                        sort_values.index(current_sort)
+                        if current_sort in sort_values else None
+                    ),
+                    format_func=lambda v: sort_labels[v],
+                    key=sort_radio_key,
+                    label_visibility="collapsed",
+                    on_change=toggle_sort_option,
+                    args=(sort_radio_key,),
+                )
 
         visible = [f for f in flights if detect_cabin_key(f) in selected]
 
-        if price_first:
-            visible = sorted(visible, key=lambda f: f.get("price_value", 0))
-
         if not visible:
-            st.warning("حداقل یک نوع پرواز را انتخاب کنید.")
+            st.markdown(
+                '<div class="cabin-notice cabin-notice-warn">'
+                'حداقل یک نوع پرواز را انتخاب کنید.'
+                '</div>',
+                unsafe_allow_html=True
+            )
         for flight in visible:
             render_flight_ticket(flight)
 

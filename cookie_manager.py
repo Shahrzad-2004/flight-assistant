@@ -8,7 +8,7 @@ from streamlit_cookies_manager import EncryptedCookieManager
 
 cookies = EncryptedCookieManager(
     prefix="flight_assistant",
-    password="FhS4WE7pk"
+    password=st.secrets["COOKIE_PASSWORD"]
 )
 
 

@@ -431,6 +431,49 @@ def detect_cabin_in_text(text: str):
             return key
     return None
 
+_LONE_CITY_RE = re.compile(rf"(?<!\w)(?:{_CITY_ALT})(?!\w)")
+_EXPLICIT_ROLE_RE = re.compile(
+    r"(?<!\w)(?:از|به|تا)(?!\w)|برم|میرم|می‌رم|مقصد|مبدا|مبدأ|مبدآ"
+)
+
+
+def fill_missing_city_from_lone_message(user_text: str, current_state: dict):
+    """وقتی ربات فقط «مبدأ» (یا فقط «مقصد») را پرسیده و کاربر فقط اسم یک
+    شهر نوشته، آن شهر قطعاً برای همان فیلدِ خالی است؛ این کار را به‌جای
+    LLM مستقیم در کد انجام می‌دهیم (LLM اسم تنها را معمولاً «مقصد» می‌گذاشت
+    و مقصد قبلی را خراب می‌کرد).
+
+    خروجی: ("origin" | "destination", نام شهر) یا None."""
+
+    if current_state.get("current_step") != "ask_required_fields":
+        return None
+
+    has_origin = bool(current_state.get("origin"))
+    has_destination = bool(current_state.get("destination"))
+
+    # فقط وقتی دقیقاً یکی از این دو خالی است
+    if has_origin == has_destination:
+        return None
+
+    text = _fa(user_text or "")
+
+    # اگر کاربر خودش نقش شهر را گفته (از/به/تا/برم/مقصد/مبدأ)، دخالت نمی‌کنیم
+    if _EXPLICIT_ROLE_RE.search(text.replace(ZWNJ, " ")):
+        return None
+
+    cities = {
+        _CITY_BY_NORM[_norm(m.group(0))]
+        for m in _LONE_CITY_RE.finditer(text)
+        if _norm(m.group(0)) in _CITY_BY_NORM
+    }
+
+    if len(cities) != 1:
+        return None
+
+    field = "destination" if has_origin else "origin"
+    return field, cities.pop()
+
+
 def extract_flight_request(user_text: str,current_state: dict | None = None) -> FlightRequest:
  
     today = datetime.now(ZoneInfo("Asia/Tehran")).date().isoformat()
@@ -465,6 +508,20 @@ def extract_flight_request(user_text: str,current_state: dict | None = None) -> 
 
     if text_destination:
         result.destination = text_destination
+
+    # فقط اسم یک شهر، بعد از سؤال «مبدأ/مقصد را مشخص کنید» → برای فیلد خالی
+    lone_city = fill_missing_city_from_lone_message(
+        user_text, current_state
+    )
+    if lone_city:
+        field, city = lone_city
+        if field == "origin":
+            result.origin = city
+            result.destination = None   # مقصد قبلی دست‌نخورده می‌ماند
+        else:
+            result.destination = city
+            result.origin = None
+
     result.origin = clean_city(result.origin, user_text)
     result.destination = clean_city(result.destination, user_text)
     raw_date = result.departure_date_raw

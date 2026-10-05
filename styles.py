@@ -667,55 +667,6 @@ def inject_cabin_and_passenger_style() -> None:
     }
     
 
-    /* ===== دکمه‌های معیار مرتب‌سازی (صفحه نتایج): شیشه‌ای ===== */
-
-    /* ترتیب از راست به چپ: ارزان‌ترین ← ... ← گران‌ترین */
-    [data-testid="stHorizontalBlock"]:has([class*="st-key-local_sort_"]) {
-        direction: rtl !important;
-        flex-direction: row !important;
-        gap: 10px !important;
-    }
-
-    [class*="st-key-local_sort_"] button {
-        width: 100% !important;
-        min-height: 48px !important;
-        background: rgba(255, 255, 255, 0.45) !important;
-        backdrop-filter: blur(14px) !important;
-        -webkit-backdrop-filter: blur(14px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.75) !important;
-        border-radius: 15px !important;
-        box-shadow:
-            0 5px 18px rgba(31, 41, 55, 0.10),
-            inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
-        color: #1f2937 !important;
-        font-family: 'Vazirmatn', sans-serif !important;
-        font-size: 14px !important;
-        font-weight: 600 !important;
-        direction: rtl !important;
-        text-align: center !important;
-        transition: all 0.25s ease !important;
-    }
-
-    [class*="st-key-local_sort_"] button p {
-        font-family: 'Vazirmatn', sans-serif !important;
-        color: #1f2937 !important;
-        direction: rtl !important;
-        text-align: center !important;
-    }
-
-    [class*="st-key-local_sort_"] button:hover {
-        background: rgba(37, 99, 235, 0.16) !important;
-        border-color: rgba(37, 99, 235, 0.45) !important;
-        box-shadow:
-            0 8px 22px rgba(37, 99, 235, 0.16),
-            inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
-        transform: translateY(-2px) !important;
-    }
-
-    [class*="st-key-local_sort_"] button:active {
-        transform: translateY(0) scale(0.98) !important;
-    }
-
     /* ===== چک‌لیست نوع (کلاس) پرواز: متن مشکی ===== */
 
     [class*="st-key-cabin_filter_"],
@@ -1983,45 +1934,7 @@ def inject_cabin_filter_panel_style() -> None:
         """
     <style>
 
-    /* موقع جستجو (rerun) استریم‌لیت عناصر قبلی را کم‌رنگ می‌کند؛ این را خاموش
-       می‌کنیم تا صفحه و نوار کناری همان‌طور که هستند بمانند */
-    [data-stale="true"],
-    .stale-element,
-    [data-testid="stSidebar"],
-    [data-testid="stSidebar"] [data-stale="true"],
-    [data-testid="stMain"] [data-stale="true"],
-    [data-testid="stAppViewContainer"] [data-stale="true"]{
-        opacity:1 !important;
-        filter:none !important;
-        transition:none !important;
-    }
-
     /* ---------- پنل «کلاس پرواز» (فیلتر نتایج) ---------- */
-
-    .cabin-filter-head{
-        direction:rtl;
-        display:flex;
-        align-items:center;
-        gap:10px;
-        margin:0 0 10px 0;
-        padding-bottom:12px;
-        border-bottom:1px solid rgba(72,128,145,.18);
-    }
-
-    .cabin-filter-icon{
-        flex:0 0 auto;
-        width:34px;
-        height:34px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        border-radius:11px;
-        font-size:17px;
-        line-height:1;
-        color:#ffffff;
-        background:linear-gradient(135deg,#5b9aab 0%,#488091 55%,#3d6d7b 100%);
-        box-shadow:0 5px 12px rgba(72,128,145,.35);
-    }
 
     .cabin-filter-texts{
         display:flex;
@@ -2051,25 +1964,103 @@ def inject_cabin_filter_panel_style() -> None:
         text-align:right;
     }
 
+    /* پنل بیرونی فقط نگه‌دارنده است؛ هر بخش کارت جدا و مستقل دارد */
     .st-key-cabin_filter_panel{
         box-sizing:border-box;
         direction:rtl;
-        background:linear-gradient(
-            160deg,
-            rgba(255,255,255,.92) 0%,
-            rgba(240,248,250,.86) 100%
-        );
-        backdrop-filter:blur(18px) saturate(140%);
-        -webkit-backdrop-filter:blur(18px) saturate(140%);
-        border:1px solid rgba(72,128,145,.26);
-        border-radius:20px;
-        padding:16px 14px 12px 14px !important;
+        background:transparent;
+        border:none;
+        padding:0 !important;
         margin-bottom:14px;
-        box-shadow:
-            0 14px 34px rgba(72,128,145,.18),
-            0 2px 6px rgba(31,41,55,.05),
-            inset 0 1px 0 rgba(255,255,255,.9);
-        gap:.35rem !important;
+        gap:12px !important;
+    }
+
+    /* کارت‌های جدا (مثل عکس نمونه) */
+    .st-key-cabin_filter_card_head,
+    .st-key-cabin_filter_card_class,
+    .st-key-cabin_filter_card_sort{
+        box-sizing:border-box;
+        direction:rtl;
+        background:#ffffff;
+        border:1px solid rgba(72,128,145,.14);
+        border-radius:18px;
+        padding:14px 14px 10px 14px !important;
+        gap:.25rem !important;
+        box-shadow:none !important;
+        filter:none !important;
+    }
+
+    .st-key-cabin_filter_card_head{
+        padding-bottom:12px !important;
+    }
+
+    /* رادیو باتن‌ها */
+    .st-key-cabin_filter_panel [data-testid="stRadio"]{
+        direction:rtl !important;
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stRadio"] [role="radiogroup"]{
+        gap:2px !important;
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stRadio"] label{
+        width:100%;
+        direction:rtl !important;
+        display:flex !important;
+        align-items:center;
+        gap:10px;
+        padding:7px 4px;
+        cursor:pointer;
+    }
+
+    /* دایره‌ی پیش‌فرض Streamlit (که قرمز/مشکی رندر می‌شد) مخفی می‌شود و
+       دایره‌ی رادیو با ::before خودمان کشیده می‌شود تا به ساختار داخلی
+       Streamlit وابسته نباشد */
+    /* عنوان خالی ویجت (st.radio) هم یک label است؛ دایره‌ی اضافه نگیرد */
+    .st-key-cabin_filter_panel [data-testid="stRadio"] [data-testid="stWidgetLabel"]{
+        display:none !important;
+    }
+
+    /* هر عنصر داخل گزینه که متن نیست (دایره‌ی قرمز/مشکی Streamlit، در هر
+       عمقی) مخفی می‌شود */
+    .st-key-cabin_filter_panel [data-testid="stRadio"] label:has(input[type="radio"]) *:not(input):not(p):not(:has(p)):not(p *){
+        display:none !important;
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stRadio"] label:has(input[type="radio"])::before{
+        content:"";
+        flex:0 0 auto;
+        box-sizing:border-box;
+        width:20px;
+        height:20px;
+        border-radius:50%;
+        background-color:#ffffff;
+        border:1.5px solid #b6c9cf;
+        transition:background-color .18s ease, border-color .18s ease;
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stRadio"] label:has(input[type="radio"]):has(input:checked)::before{
+        background-color:#3b82f6;
+        border-color:#3b82f6;
+        background-image:radial-gradient(circle, #ffffff 0 3.5px, transparent 4px);
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stRadio"] label:has(input[type="radio"]):focus-within::before{
+        box-shadow:0 0 0 3px rgba(59,130,246,.28);
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stRadio"] p{
+        font-family:'Vazirmatn', sans-serif !important;
+        font-size:14px !important;
+        font-weight:600 !important;
+        color:#1f2937 !important;
+        white-space:nowrap;
+        margin:0;
+    }
+
+    .st-key-cabin_filter_panel [data-testid="stRadio"] label:has(input:checked) p{
+        color:#2b5461 !important;
+        font-weight:700 !important;
     }
 
     .st-key-cabin_filter_panel label,
@@ -2077,33 +2068,75 @@ def inject_cabin_filter_panel_style() -> None:
         direction:rtl !important;
     }
 
-    /* هر گزینه یک ردیف قابل‌کلیک است؛ بدون کادر جداگانه چون پنل یک کادر کلی دارد */
+    /* هر گزینه یک ردیف قابل‌کلیک است؛ بدون کادر و پس‌زمینه‌ی جدا چون
+       خود پنل یک کادر کلی دارد */
     .st-key-cabin_filter_panel [data-testid="stCheckbox"] label{
         width:100%;
         box-sizing:border-box;
         display:flex !important;
         align-items:center;
         gap:10px;
-        padding:8px 6px;
+        padding:7px 4px;
         border:none !important;
-        border-radius:10px;
         background:transparent !important;
         box-shadow:none !important;
         cursor:pointer;
-        transition:background .18s ease;
     }
 
-    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:hover{
-        background:rgba(72,128,145,.08) !important;
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:hover p{
+        color:#2b5461 !important;
     }
 
-    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked){
-        background:transparent !important;
-        border:none !important;
-        box-shadow:none !important;
+    /* عنوان بخش‌های داخل پنل («کلاس پرواز» / «مرتب‌سازی بر اساس») */
+    .cabin-filter-section{
+        direction:rtl;
+        text-align:right;
+        font-family:'Vazirmatn', sans-serif !important;
+        font-weight:700;
+        font-size:12.5px;
+        line-height:1.5;
+        color:#488091;
+        margin:2px 4px 12px 4px;
     }
 
-    /* مربع تیک هم‌رنگ برند */
+    .st-key-cabin_filter_card_class .cabin-filter-section{
+        margin-bottom:18px;
+    }
+
+    .cabin-filter-section-sep{
+        margin-top:8px;
+        padding-top:10px;
+        border-top:1px solid rgba(72,128,145,.18);
+    }
+
+    /* پیام‌های کوتاه نتایج (به‌جای st.info / st.warning) با متن خوانا */
+    .cabin-notice{
+        direction:rtl;
+        text-align:right;
+        font-family:'Vazirmatn', sans-serif !important;
+        font-weight:600;
+        font-size:14px;
+        line-height:1.8;
+        padding:12px 16px;
+        border-radius:14px;
+        margin:6px 0 10px 0;
+    }
+
+    .cabin-notice-warn{
+        background:#fff4cc;
+        border:1px solid #f0d27a;
+        color:#6b4a00;
+    }
+
+    .cabin-notice-info{
+        background:#e6f2f5;
+        border:1px solid #b9d6de;
+        color:#1f4a57;
+    }
+
+    /* مربع تیک (آبی). عنصر مربع = فرزند label که input و متن نیست،
+       تا به ساختار HTML نسخه‌ی Streamlit وابسته نباشد */
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label > :not(input):not(:has(p)),
     .st-key-cabin_filter_panel [data-testid="stCheckbox"] label > span:first-of-type{
         flex:0 0 auto;
         width:20px !important;
@@ -2114,16 +2147,19 @@ def inject_cabin_filter_panel_style() -> None:
         transition:background-color .18s ease, border-color .18s ease;
     }
 
-    /* مربع تیک‌خورده نارنجی (به‌جای قرمز پیش‌فرض استریم‌لیت) */
-    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked) > span:first-of-type,
-    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked) [role="checkbox"],
-    .st-key-cabin_filter_panel [data-testid="stCheckbox"] [data-baseweb="checkbox"]:has(input:checked) > span:first-of-type{
-        background-color:#f97316 !important;
-        border-color:#f97316 !important;
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked) > :not(input):not(:has(p)),
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked) > span:first-of-type{
+        background-color:#3b82f6 !important;
+        border-color:#3b82f6 !important;
     }
 
-    .st-key-cabin_filter_panel [data-testid="stCheckbox"] input{
-        accent-color:#f97316;
+    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:focus-within > :not(input):not(:has(p)){
+        box-shadow:0 0 0 3px rgba(59,130,246,.28) !important;
+    }
+
+    .st-key-cabin_filter_panel input[type="checkbox"],
+    .st-key-cabin_filter_panel input[type="radio"]{
+        accent-color:#3b82f6;
     }
 
     .st-key-cabin_filter_panel [data-testid="stCheckbox"] p{
@@ -2136,14 +2172,8 @@ def inject_cabin_filter_panel_style() -> None:
     }
 
     .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:checked) p{
-        color:#9a3f0b !important;
+        color:#2b5461 !important;
         font-weight:700 !important;
-    }
-
-    .st-key-cabin_filter_panel [data-testid="stCheckbox"] label:has(input:disabled){
-        opacity:.42;
-        cursor:not-allowed;
-        background:rgba(243,244,246,.6);
     }
 
     /* صفحه‌ی عریض: پنل ثابت و کوچک سمت چپ + کمی فضا برای محتوا تا
@@ -2152,9 +2182,11 @@ def inject_cabin_filter_panel_style() -> None:
 
         .st-key-cabin_filter_panel{
             position:fixed !important;
-            left:14px;
+            left:44px;
             top:150px;
-            width:204px !important;
+            width:210px !important;
+            max-height:calc(100vh - 170px);
+            overflow-y:auto;
             z-index:999;
             margin-bottom:0;
 
@@ -2165,7 +2197,7 @@ def inject_cabin_filter_panel_style() -> None:
 
         .block-container:has(.st-key-cabin_filter_panel),
         [data-testid="stMainBlockContainer"]:has(.st-key-cabin_filter_panel){
-            padding-left:236px !important;
+            padding-left:274px !important;
         }
     }
 
@@ -2259,6 +2291,7 @@ _SEARCH_LOADER_JS = """
         function hide() {
             stopPoll();
             if (ov) { ov.classList.remove('fsl-on'); }
+            doc.body.classList.remove('fsl-searching');
         }
 
         function tick() {
@@ -2287,75 +2320,65 @@ _SEARCH_LOADER_JS = """
             }
         }
 
-        // اندازه و جای آخرین کادر تایپ دیده‌شده را نگه می‌داریم؛ چون موقع جستجو
-        // کادر تایپ روی صفحه نیست و لودر باید دقیقاً همان‌جا و همان‌اندازه بنشیند
-        var lastInput = null;
-
-        function rememberInput() {
-            var el = doc.querySelector('[data-testid="stChatInput"]');
-            if (!el) { return; }
-            var r = el.getBoundingClientRect();
-            if (r.width > 50 && r.height > 20) {
-                lastInput = {
-                    left: r.left,
-                    width: r.width,
-                    height: r.height,
-                    bottom: win.innerHeight - r.bottom
-                };
-            }
-        }
-        win.setInterval(rememberInput, 400);
-        win.addEventListener('resize', function () { lastInput = null; rememberInput(); });
-
+        // هم‌اندازه و هم‌جای کادر تایپ چت: اگر کادر تایپ در این حالت رندر
+        // نشده باشد، از ظرف پایین صفحه‌ی Streamlit (که کادر تایپ همیشه داخل
+        // آن می‌نشیند) اندازه و فاصله از پایین گرفته می‌شود
         function align() {
             if (!ov) { return; }
-            var box = ov.querySelector('.fsl-box');
-            if (!box) { return; }
 
-            rememberInput();                       // اگر کادر تایپ الان هست، دقیق‌ترین مقدار
+            var left = null, right = null, gap = null;
 
-            var g = lastInput;
-            if (!g) {
-                // کادر تایپ هنوز دیده نشده: از ستون اصلی صفحه تخمین می‌زنیم
-                var c = doc.querySelector('[data-testid="stMainBlockContainer"]') ||
-                        doc.querySelector('[data-testid="stMain"]');
-                if (!c) { return; }
-                var r = c.getBoundingClientRect();
-                var cs = win.getComputedStyle(c);
-                var pl = parseFloat(cs.paddingLeft) || 0;
-                var pr = parseFloat(cs.paddingRight) || 0;
-                g = {
-                    left: r.left + pl,
-                    width: Math.max(r.width - pl - pr, 240),
-                    height: 58,
-                    bottom: 32
-                };
+            var input = doc.querySelector('[data-testid="stChatInput"]');
+            var cont = doc.querySelector('[data-testid="stBottomBlockContainer"]');
+
+            if (input && input.offsetWidth > 0) {
+                var ir = input.getBoundingClientRect();
+                left = ir.left;
+                right = ir.right;
+                gap = win.innerHeight - ir.bottom;
+            } else if (cont && cont.offsetWidth > 0) {
+                var cs = win.getComputedStyle(cont);
+                var cr = cont.getBoundingClientRect();
+                left = cr.left + (parseFloat(cs.paddingLeft) || 0);
+                right = cr.right - (parseFloat(cs.paddingRight) || 0);
+                gap = win.innerHeight - cr.bottom + (parseFloat(cs.paddingBottom) || 0);
+            } else {
+                var m = doc.querySelector('[data-testid="stMain"]');
+                if (!m) { return; }
+                var mr = m.getBoundingClientRect();
+                left = mr.left + 16;
+                right = mr.right - 16;
+                gap = 28;
             }
 
-            box.style.left = g.left + 'px';
-            box.style.width = g.width + 'px';
-            box.style.height = g.height + 'px';
-            box.style.bottom = g.bottom + 'px';
-            box.classList.add('fsl-placed');
-
-            var spin = box.querySelector('.fsl-spin');
-            if (spin) {
-                var d = Math.max(Math.min(g.height - 12, 46), 24);
-                spin.style.width = d + 'px';
-                spin.style.height = d + 'px';
+            // عرض افقی لودر هم‌اندازه‌ی محتوای اصلی (هم‌عرض کارت‌ها)
+            var mainc = doc.querySelector('[data-testid="stMainBlockContainer"]')
+                || doc.querySelector('.block-container');
+            if (!(input && input.offsetWidth > 0) && mainc && mainc.offsetWidth > 0) {
+                var mcs = win.getComputedStyle(mainc);
+                var mcr = mainc.getBoundingClientRect();
+                left = mcr.left + (parseFloat(mcs.paddingLeft) || 0);
+                right = mcr.right - (parseFloat(mcs.paddingRight) || 0);
             }
+
+            ov.style.paddingLeft = Math.max(left, 0) + 'px';
+            ov.style.paddingRight = Math.max(win.innerWidth - right, 0) + 'px';
+            ov.style.paddingBottom = Math.max(gap, 0) + 'px';
         }
 
         function show() {
             build();
             align();
             ov.classList.add('fsl-on');
+            doc.body.classList.add('fsl-searching');
             shownAt = Date.now();
             sawBusy = false;
             idleSince = 0;
             stopPoll();
             poll = win.setInterval(tick, 200);
         }
+
+        win.addEventListener('resize', align);
 
         doc.addEventListener('click', function (e) {
             var t = e.target;
@@ -2386,9 +2409,9 @@ def inject_search_loader() -> None:
         """
     <style>
 
-    /* لودر جستجو: دقیقاً هم‌اندازه و هم‌جای کادر تایپ کاربر (اندازه و جایش را
-       جاوااسکریپت از خود کادر تایپ برمی‌دارد). لایه‌ی بیرونی کاملاً شفاف است،
-       صفحه را کم‌رنگ نمی‌کند و فقط جلوی کلیک‌های اضافه را می‌گیرد */
+    /* لودر جستجو: به‌جای وسط صفحه، مثل کادر تایپ کاربر پایین صفحه می‌نشیند و
+       هواپیمای چرخان گوشه‌ی سمت چپ همان کادر است. لایه‌ی بیرونی شفاف است و فقط
+       جلوی کلیک‌های اضافه را می‌گیرد */
     #flight-search-loader{
         position:fixed;
         top:0;
@@ -2396,6 +2419,13 @@ def inject_search_loader() -> None:
         left:0;
         right:0;
         z-index:2147483000;
+
+        display:flex;
+        align-items:flex-end;
+        justify-content:center;
+        box-sizing:border-box;
+        padding:0 16px 28px 16px;   /* جای دقیق را align() در JS با اندازه‌ی کادر تایپ تنظیم می‌کند */
+
         background:transparent;
 
         opacity:0;
@@ -2412,21 +2442,16 @@ def inject_search_loader() -> None:
     }
 
     #flight-search-loader .fsl-box{
-        position:fixed;
-        /* مقدار پیش‌فرض تا وقتی جاوااسکریپت اندازه‌ی واقعی را بگذارد */
-        left:50%;
-        bottom:32px;
-        width:min(700px, 92vw);
-        height:58px;
-        transform:translateX(-50%);
-
         direction:ltr;
         display:flex;
         align-items:center;
         justify-content:space-between;
         gap:12px;
+
+        width:100%;
+        min-height:64px;
         box-sizing:border-box;
-        padding:0 12px;
+        padding:8px 14px 8px 12px;
 
         background:#ffffff;
         border:1px solid #d1d5db;
@@ -2434,15 +2459,10 @@ def inject_search_loader() -> None:
         box-shadow:0 5px 20px rgba(0,0,0,.08);
     }
 
-    #flight-search-loader .fsl-box.fsl-placed{
-        transform:none;
-    }
-
     #flight-search-loader .fsl-spin{
         flex:0 0 auto;
-        width:42px;
-        height:42px;
-        max-height:calc(100% - 8px);
+        width:46px;
+        height:46px;
         animation:fsl-rotate 2.4s linear infinite;
         filter:drop-shadow(0 3px 6px rgba(27,90,85,.18));
     }
@@ -2456,6 +2476,15 @@ def inject_search_loader() -> None:
         direction:rtl;
         text-align:right;
         animation:fsl-pulse 1.6s ease-in-out infinite;
+    }
+
+    /* در طول جستجو صفحه و نوار کناری کمرنگ/محو نشوند
+       (استایل پیش‌فرض Streamlit برای عناصر «stale» هنگام rerun) */
+    body.fsl-searching [data-stale="true"],
+    body.fsl-searching .stale-element{
+        opacity:1 !important;
+        filter:none !important;
+        transition:none !important;
     }
 
     @keyframes fsl-rotate{
@@ -2978,6 +3007,16 @@ gap:20px;
 
 flex:1;
 
+min-width:0;
+
+}
+
+/* صفحه‌ی نتایج پرواز: کارت‌ها عرض بیشتری داشته باشند */
+.block-container:has(.ticket-card),
+[data-testid="stMainBlockContainer"]:has(.ticket-card){
+
+max-width:1400px !important;
+
 }
 
 
@@ -2990,6 +3029,10 @@ justify-content:space-between;
 
 align-items:center;
 
+flex-wrap:wrap;
+
+gap:10px 16px;
+
 }
 
 .airline-name{
@@ -2999,6 +3042,8 @@ align-items:center;
     font-size:22px;
     font-weight:700;
     color:#488091;
+    white-space:nowrap;
+    flex:0 0 auto;
 }
 
 .airline-logo {
@@ -3022,7 +3067,19 @@ align-items:center;
 
     gap:6px;
 
-    max-width:360px;
+    max-width:none;
+
+    min-width:0;
+
+}
+
+@media (min-width: 900px){
+
+    .flight-tags{
+
+        flex-wrap:nowrap;
+
+    }
 
 }
 

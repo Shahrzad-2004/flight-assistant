@@ -57,6 +57,21 @@ def create_google_user(
 
         user_id = user[0]
 
+        cursor.execute(
+            """
+            UPDATE users
+            SET email = ?, name = ?, picture = ?
+            WHERE id = ?
+            """,
+            (
+                email,
+                name,
+                picture,
+                user_id
+            )
+        )
+
+        conn.commit()
 
     else:
 
