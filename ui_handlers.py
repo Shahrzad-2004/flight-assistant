@@ -11,7 +11,6 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 
-from cookie_manager import cookies
 from flight_graph import flight_graph,detect_cabin_key
 from chat_database import (
     save_message,
@@ -542,7 +541,7 @@ def render_sidebar_archive_view(user_id: int | None):
         render_session_card(session, archived=True)
 
 
-def logout_user():
+def logout_user(cookies):
     """خروج کاربر از حساب: پاک کردن session و کوکی."""
     st.session_state.pop("user", None)
     st.session_state["just_logged_out"] = True

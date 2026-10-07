@@ -6,11 +6,14 @@ st.cache = st.cache_resource
 
 from streamlit_cookies_manager import EncryptedCookieManager
 
-cookies = EncryptedCookieManager(
-    prefix="flight_assistant",
-    password=st.secrets["COOKIE_PASSWORD"]
-)
 
+def get_cookie_manager():
+    cookies = EncryptedCookieManager(
+        prefix="flight_assistant",
+        password=st.secrets["COOKIE_PASSWORD"]
+    )
 
-if not cookies.ready():
-    st.stop()
+    if not cookies.ready():
+        st.stop()
+
+    return cookies

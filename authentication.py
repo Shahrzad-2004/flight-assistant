@@ -1,6 +1,5 @@
 from authlib.integrations.requests_client import OAuth2Session
 from user_database import create_google_user
-from cookie_manager import cookies
 import streamlit as st
 
 
@@ -20,7 +19,7 @@ def get_google_auth_url():
     st.session_state["oauth_state"] = state
     return authorization_url
 
-def handle_google_callback():
+def handle_google_callback(cookies):
 
     if "code" not in st.query_params:
         return False

@@ -8,7 +8,7 @@ import jdatetime
 from chat_database import create_tables, save_message,list_sessions
 from authentication import handle_google_callback, get_google_auth_url
 from user_database import create_users_table,get_user_by_id
-from cookie_manager import cookies
+from cookie_manager import get_cookie_manager
 from flight_graph import detect_cabin_key
 
 
@@ -67,6 +67,12 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# هر بار که این اسکریپت واقعاً اجرا می‌شود (هر rerun، هر سشن تازه بعد
+# از بستن/بازکردنِ مرورگر) باید اینجا از نو ساخته شود -- نه در سطح
+# ماژولِ cookie_manager.py -- وگرنه فقط اولین سشنِ سرور با مرورگر
+# sync می‌شود و بقیه کاربرها/سشن‌های بعدی کوکیِ قدیمی/خالی می‌بینند.
+cookies = get_cookie_manager()
 
 
 # خواندن عکس
@@ -179,7 +185,7 @@ inject_cabin_filter_panel_style()
 
 
 
-handle_google_callback()
+handle_google_callback(cookies)
 
 
 # بازیابی کاربر از Cookie
@@ -277,7 +283,8 @@ with st.sidebar:
                 "🚪 خروج از حساب",
                 key="logout_button",
                 use_container_width=True,
-                on_click=logout_user
+                on_click=logout_user,
+                args=(cookies,)
             )
 
     else:
