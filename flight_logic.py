@@ -17,7 +17,7 @@ from city_options import COUNTRY_NAMES
  
  
 # ساخت ال ال ام استخراج‌کننده
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def create_flight_extractor():
  
     api_key = st.secrets.get("QWEN_API_KEY")

@@ -5,6 +5,7 @@
 همه‌ی این توابع state چت را در st.session_state به‌روزرسانی می‌کنند
 و Graph پروازها (flight_graph) را دوباره اجرا می‌کنند.
 """
+import json
 import uuid
 import traceback
 import streamlit as st
@@ -31,6 +32,93 @@ WELCOME_MESSAGE = (
 def current_user_id():
     """آی‌دی کاربر لاگین‌شده، یا None اگر مهمان باشد."""
     return st.session_state.get("user", {}).get("id")
+
+
+def register_guest_session(session_id: str):
+    """ثبت شناسه‌ی گفتگویی که همین نشست مرورگر ساخته است.
+    فقط شناسه‌های ثبت‌شده در این لیست برای مهمان قابل مشاهده/تغییرند."""
+    st.session_state.setdefault("guest_session_ids", set()).add(session_id)
+
+
+# شناسه‌ی گفتگوهای مهمان در یک کوکیِ رمزنگاری‌شده (و امضاشده) نگه
+# داشته می‌شود تا بعد از رفرش یا بستن مرورگر، مهمان به تاریخچه‌ی خودش
+# برگردد. چون کوکی با COOKIE_PASSWORD رمزنگاری و احراز می‌شود، مهمان
+# نمی‌تواند شناسه‌ی گفتگوی دیگران را در آن جا بزند.
+GUEST_COOKIE_KEY = "guest_sessions"
+MAX_GUEST_COOKIE_SESSIONS = 30  # محدودیت ~۴KB اندازه‌ی کوکی
+
+
+def _read_guest_cookie_ids(cookies) -> list[str]:
+    """خواندن امن شناسه‌ها از کوکی؛ هر مقدار نامعتبر نادیده گرفته می‌شود."""
+    if GUEST_COOKIE_KEY not in cookies:
+        return []
+
+    try:
+        raw = json.loads(cookies[GUEST_COOKIE_KEY])
+    except (ValueError, TypeError):
+        return []
+
+    if not isinstance(raw, list):
+        return []
+
+    ids = []
+    for item in raw:
+        try:
+            ids.append(str(uuid.UUID(str(item))))
+        except ValueError:
+            continue
+
+    return ids
+
+
+def load_guest_sessions_from_cookie(cookies):
+    """یک‌بار در هر نشست: شناسه‌های ذخیره‌شده در کوکی را مجاز می‌کند."""
+    if st.session_state.get("_guest_cookie_loaded"):
+        return
+
+    st.session_state["_guest_cookie_loaded"] = True
+
+    for session_id in _read_guest_cookie_ids(cookies):
+        register_guest_session(session_id)
+
+
+def sync_guest_sessions_cookie(cookies):
+    """کوکی را با گفتگوهای واقعیِ مهمان هماهنگ می‌کند: شناسه‌ی گفتگوهای
+    جدید (که حداقل یک پیام دارند) اضافه و شناسه‌ی گفتگوهای حذف‌شده
+    برداشته می‌شود. فقط وقتی چیزی تغییر کرده کوکی نوشته می‌شود."""
+    if current_user_id() is not None:
+        return
+
+    allowed = guest_allowed_ids()
+
+    existing = {
+        s["session_id"]
+        for archived in (False, True)
+        for s in list_sessions(
+            user_id=None,
+            archived=archived,
+            allowed_session_ids=allowed
+        )
+    }
+
+    previous = _read_guest_cookie_ids(cookies)
+
+    updated = [i for i in previous if i in existing]
+    updated += [i for i in existing if i not in updated]
+    updated = updated[-MAX_GUEST_COOKIE_SESSIONS:]
+
+    if updated != previous:
+        cookies[GUEST_COOKIE_KEY] = json.dumps(updated)
+        cookies.save()
+
+
+def guest_allowed_ids():
+    """لیست شناسه‌های مجاز برای مهمان؛ برای کاربر لاگین‌شده None
+    (چون او با user_id کنترل می‌شود)."""
+    if current_user_id() is not None:
+        return None
+
+    return st.session_state.setdefault("guest_session_ids", set())
 
 
 def _run_graph_step(current_state, user_message):
@@ -268,6 +356,7 @@ def toggle_sidebar():
 def start_new_conversation():
     """ساخت یک گفتگوی تازه و خالی و فعال کردن آن."""
     st.session_state.session_id = str(uuid.uuid4())
+    register_guest_session(st.session_state.session_id)
 
     st.session_state.messages = [
         {
@@ -281,9 +370,17 @@ def start_new_conversation():
 
 def switch_session(session_id: str):
     """جابه‌جایی به یکی از گفتگوهای ذخیره‌شده و بارگذاری تاریخچه آن."""
-    st.session_state.session_id = session_id
+    messages = load_messages(
+        session_id,
+        user_id=current_user_id(),
+        allowed_session_ids=guest_allowed_ids()
+    )
 
-    messages = load_messages(session_id, user_id=current_user_id())
+    # مهمان نمی‌تواند به شناسه‌ی ناشناخته سوییچ کند
+    if current_user_id() is None and session_id not in guest_allowed_ids():
+        return
+
+    st.session_state.session_id = session_id
 
     if not messages:
         messages = [
@@ -299,7 +396,11 @@ def switch_session(session_id: str):
 
 def remove_session(session_id: str):
     """حذف یک گفتگوی ذخیره‌شده از پایگاه داده (به‌صورت تکی)."""
-    delete_session(session_id, user_id=current_user_id())
+    delete_session(
+        session_id,
+        user_id=current_user_id(),
+        allowed_session_ids=guest_allowed_ids()
+    )
 
     # اگر گفتگوی فعلی حذف شد، یک گفتگوی جدید و خالی بساز
     if session_id == st.session_state.get("session_id"):
@@ -332,13 +433,23 @@ def delete_session_dialog(session_id: str):
 
 def toggle_pin_session(session_id: str, pinned: bool):
     """پین کردن (pinned=True) یا برداشتن پین یک گفتگو."""
-    set_session_pinned(session_id, pinned, user_id=current_user_id())
+    set_session_pinned(
+        session_id,
+        pinned,
+        user_id=current_user_id(),
+        allowed_session_ids=guest_allowed_ids()
+    )
 
 
 def archive_session(session_id: str):
     """آرشیو کردن گفتگو؛ پیام‌ها در دیتابیس می‌مانند و فقط از لیست فعال
     خارج می‌شود. اگر گفتگوی فعلی آرشیو شد، یک گفتگوی تازه باز می‌شود."""
-    set_session_archived(session_id, True, user_id=current_user_id())
+    set_session_archived(
+        session_id,
+        True,
+        user_id=current_user_id(),
+        allowed_session_ids=guest_allowed_ids()
+    )
 
     if session_id == st.session_state.get("session_id"):
         start_new_conversation()
@@ -346,7 +457,12 @@ def archive_session(session_id: str):
 
 def unarchive_session(session_id: str):
     """خارج کردن گفتگو از آرشیو و برگشت به لیست گفتگوهای اخیر."""
-    set_session_archived(session_id, False, user_id=current_user_id())
+    set_session_archived(
+        session_id,
+        False,
+        user_id=current_user_id(),
+        allowed_session_ids=guest_allowed_ids()
+    )
 
 
 def open_archive_view():
@@ -387,7 +503,8 @@ def rename_session_dialog(session_id: str, current_title: str):
                 rename_session(
                     session_id,
                     new_title,
-                    user_id=current_user_id()
+                    user_id=current_user_id(),
+                    allowed_session_ids=guest_allowed_ids()
                 )
                 st.rerun()
             else:
@@ -508,7 +625,10 @@ def render_sidebar_main_view(user_id: int | None):
         unsafe_allow_html=True
     )
 
-    sessions = list_sessions(user_id=user_id)
+    sessions = list_sessions(
+        user_id=user_id,
+        allowed_session_ids=guest_allowed_ids()
+    )
 
     if not sessions:
 
@@ -555,7 +675,11 @@ def render_sidebar_archive_view(user_id: int | None):
         unsafe_allow_html=True
     )
 
-    archived_sessions = list_sessions(user_id=user_id, archived=True)
+    archived_sessions = list_sessions(
+        user_id=user_id,
+        archived=True,
+        allowed_session_ids=guest_allowed_ids()
+    )
 
     if not archived_sessions:
 

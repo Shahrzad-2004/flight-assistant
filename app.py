@@ -5,9 +5,9 @@ from pathlib import Path
 import streamlit as st
 from datetime import datetime
 import jdatetime
-from chat_database import create_tables, save_message,list_sessions
+from chat_database import create_tables, save_message,list_sessions, encrypt_existing_chat_data
 from authentication import handle_google_callback, get_google_auth_url
-from user_database import create_users_table,get_user_by_id
+from user_database import create_users_table,get_user_by_id, encrypt_existing_user_data
 from cookie_manager import get_cookie_manager
 from flight_graph import detect_cabin_key
 
@@ -46,19 +46,29 @@ from ui_handlers import (
     toggle_sidebar,
     render_sidebar_main_view,
     render_sidebar_archive_view,
-    logout_user,      
+    logout_user,
+    load_guest_sessions_from_cookie,
+    sync_guest_sessions_cookie,
 
 )
 from chat_response import handle_user_prompt
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def initialize_database():
     create_users_table()
     create_tables()
+    # داده‌های قدیمیِ بدون رمز (اگر باشند) یک بار رمز می‌شوند
+    encrypt_existing_user_data()
+    encrypt_existing_chat_data()
 
 initialize_database()
 
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
+
+# فقط شناسه‌هایی که همین نشست ساخته، برای مهمان مجاز هستند
+st.session_state.setdefault("guest_session_ids", set()).add(
+    st.session_state.session_id
+)
 if "sidebar_open" not in st.session_state:
     st.session_state.sidebar_open = True
 # تنظیمات صفحه
@@ -74,6 +84,9 @@ st.set_page_config(
 # ماژولِ cookie_manager.py -- وگرنه فقط اولین سشنِ سرور با مرورگر
 # sync می‌شود و بقیه کاربرها/سشن‌های بعدی کوکیِ قدیمی/خالی می‌بینند.
 cookies = get_cookie_manager()
+
+# بازیابی گفتگوهای قبلیِ همین مرورگر (مهمان) از کوکی رمزنگاری‌شده
+load_guest_sessions_from_cookie(cookies)
 
 
 # خواندن عکس
@@ -204,6 +217,9 @@ if "user" not in st.session_state and not st.session_state.get("just_logged_out"
 
 # فلگ خروج فقط برای همون یک rerun بلافاصله بعد از کلیک لازمه
 st.session_state["just_logged_out"] = False
+
+# هماهنگ کردن کوکیِ گفتگوهای مهمان با دیتابیس
+sync_guest_sessions_cookie(cookies)
 
 if "user" not in st.session_state:
 

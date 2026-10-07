@@ -1,6 +1,8 @@
 import sqlite3
 from pathlib import Path
 
+from db_crypto import encrypt_text, decrypt_text, is_encrypted
+
 
 DB_PATH = Path("users.db")
 
@@ -64,9 +66,9 @@ def create_google_user(
             WHERE id = ?
             """,
             (
-                email,
-                name,
-                picture,
+                encrypt_text(email),
+                encrypt_text(name),
+                encrypt_text(picture),
                 user_id
             )
         )
@@ -87,9 +89,9 @@ def create_google_user(
             """,
             (
                 google_id,
-                email,
-                name,
-                picture
+                encrypt_text(email),
+                encrypt_text(name),
+                encrypt_text(picture)
             )
         )
 
@@ -126,10 +128,37 @@ def get_user_by_id(user_id):
 
         return {
             "id": user[0],
-            "email": user[1],
+            "email": decrypt_text(user[1]),
             "google_id": user[2],
-            "name": user[3],
-            "picture": user[4]
+            "name": decrypt_text(user[3]),
+            "picture": decrypt_text(user[4])
         }
 
     return None
+
+
+# رمزکردن کاربرانی که قبل از فعال‌شدن رمزنگاری ذخیره شده‌اند (idempotent).
+# قبلش از users.db یک نسخه‌ی پشتیبان بگیر.
+def encrypt_existing_user_data() -> int:
+    changed = 0
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    for user_id, email, name, picture in cursor.execute(
+        "SELECT id, email, name, picture FROM users"
+    ).fetchall():
+        if any(v is not None and not is_encrypted(v) for v in (email, name, picture)):
+            cursor.execute(
+                "UPDATE users SET email = ?, name = ?, picture = ? WHERE id = ?",
+                (encrypt_text(email), encrypt_text(name), encrypt_text(picture), user_id)
+            )
+            changed += 1
+
+    conn.commit()
+
+    if changed:
+        # نسخه‌ی متنیِ قدیمی ممکن است در صفحه‌های آزادشده‌ی فایل بماند؛ VACUUM پاکش می‌کند
+        conn.execute("VACUUM")
+
+    conn.close()
+    return changed

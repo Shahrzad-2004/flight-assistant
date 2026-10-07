@@ -2,6 +2,8 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from db_crypto import encrypt_text, decrypt_text, is_encrypted
+
 
 DATABASE_PATH = Path(__file__).parent / "flight_assistant.db"
 
@@ -94,6 +96,24 @@ def _owner_id(user_id: int | None) -> int:
     return GUEST_OWNER_ID if user_id is None else user_id
 
 
+def _is_allowed(
+    session_id: str,
+    user_id: int | None,
+    allowed_session_ids
+) -> bool:
+    """کاربر لاگین‌شده با user_id کنترل می‌شود. مهمان‌ها همگی user_id=NULL
+    دارند، پس فقط شناسه‌هایی مجازند که همین نشست خودش ساخته است.
+    اگر لیست مجاز داده نشود، دسترسی مهمان بسته است (fail-closed)."""
+
+    if user_id is not None:
+        return True
+
+    return (
+        allowed_session_ids is not None
+        and session_id in allowed_session_ids
+    )
+
+
 def _session_exists(connection, session_id: str, user_id: int | None) -> bool:
     """آیا این گفتگو واقعاً متعلق به همین کاربر (یا مهمان) است؟"""
 
@@ -117,9 +137,13 @@ def _update_meta(
     session_id: str,
     user_id: int | None,
     assignments: str,
-    params: tuple
+    params: tuple,
+    allowed_session_ids=None
 ) -> bool:
     """به‌روزرسانی وضعیت یک گفتگو؛ فقط اگر گفتگو مال همین کاربر باشد."""
+
+    if not _is_allowed(session_id, user_id, allowed_session_ids):
+        return False
 
     with get_connection() as connection:
 
@@ -149,10 +173,12 @@ def _update_meta(
 def set_session_pinned(
     session_id: str,
     pinned: bool,
-    user_id: int | None = None
+    user_id: int | None = None,
+    allowed_session_ids=None
 ) -> bool:
     return _update_meta(
-        session_id, user_id, "is_pinned = ?", (1 if pinned else 0,)
+        session_id, user_id, "is_pinned = ?", (1 if pinned else 0,),
+        allowed_session_ids
     )
 
 
@@ -161,21 +187,26 @@ def set_session_pinned(
 def set_session_archived(
     session_id: str,
     archived: bool,
-    user_id: int | None = None
+    user_id: int | None = None,
+    allowed_session_ids=None
 ) -> bool:
     if archived:
         return _update_meta(
-            session_id, user_id, "is_archived = 1, is_pinned = 0", ()
+            session_id, user_id, "is_archived = 1, is_pinned = 0", (),
+            allowed_session_ids
         )
 
-    return _update_meta(session_id, user_id, "is_archived = 0", ())
+    return _update_meta(
+        session_id, user_id, "is_archived = 0", (), allowed_session_ids
+    )
 
 
 # تغییر عنوان گفتگو؛ عنوان خالی پذیرفته نمی‌شود
 def rename_session(
     session_id: str,
     new_title: str,
-    user_id: int | None = None
+    user_id: int | None = None,
+    allowed_session_ids=None
 ) -> bool:
     clean_title = " ".join((new_title or "").split())[:MAX_TITLE_LENGTH]
 
@@ -183,7 +214,8 @@ def rename_session(
         return False
 
     return _update_meta(
-        session_id, user_id, "custom_title = ?", (clean_title,)
+        session_id, user_id, "custom_title = ?", (encrypt_text(clean_title),),
+        allowed_session_ids
     )
 
 
@@ -204,7 +236,7 @@ def save_message(session_id: str, role: str, content: str, user_id: int | None =
                 session_id,
                 user_id,
                 role,
-                content,
+                encrypt_text(content),
                 datetime.now().isoformat()
             )
         )
@@ -212,7 +244,14 @@ def save_message(session_id: str, role: str, content: str, user_id: int | None =
         connection.commit()
 
 
-def load_messages(session_id: str, user_id: int | None = None):
+def load_messages(
+    session_id: str,
+    user_id: int | None = None,
+    allowed_session_ids=None
+):
+    if not _is_allowed(session_id, user_id, allowed_session_ids):
+        return []
+
     with get_connection() as connection:
 
         if user_id is None:
@@ -239,7 +278,7 @@ def load_messages(session_id: str, user_id: int | None = None):
     return [
         {
             "role": role,
-            "content": content
+            "content": decrypt_text(content)
         }
         for role, content in rows
     ]
@@ -249,7 +288,15 @@ def load_messages(session_id: str, user_id: int | None = None):
 #   archived=False (پیش‌فرض): گفتگوهای فعال؛ ابتدا پین‌شده‌ها و بعد بقیه،
 #   هر گروه از جدیدترین به قدیمی‌ترین.
 #   archived=True: فقط گفتگوهای آرشیوشده.
-def list_sessions(user_id: int | None = None, archived: bool = False):
+def list_sessions(
+    user_id: int | None = None,
+    archived: bool = False,
+    allowed_session_ids=None
+):
+
+    # مهمان بدون لیست مجاز هیچ گفتگویی نمی‌بیند
+    if user_id is None and not allowed_session_ids:
+        return []
 
     with get_connection() as connection:
 
@@ -297,8 +344,13 @@ def list_sessions(user_id: int | None = None, archived: bool = False):
 
     for session_id, last_activity, title, is_pinned, custom_title in rows:
 
+        if not _is_allowed(session_id, user_id, allowed_session_ids):
+            continue
+
         full_title = (
-            custom_title or title or "گفتگوی بدون عنوان"
+            decrypt_text(custom_title)
+            or decrypt_text(title)
+            or "گفتگوی بدون عنوان"
         ).strip()
 
         clean_title = full_title
@@ -319,7 +371,14 @@ def list_sessions(user_id: int | None = None, archived: bool = False):
 
 
 # حذف کامل یک گفتگو از پایگاه داده (فقط اگر متعلق به همین کاربر/مهمان باشد)
-def delete_session(session_id: str, user_id: int | None = None):
+def delete_session(
+    session_id: str,
+    user_id: int | None = None,
+    allowed_session_ids=None
+):
+
+    if not _is_allowed(session_id, user_id, allowed_session_ids):
+        return
 
     with get_connection() as connection:
 
@@ -341,3 +400,43 @@ def delete_session(session_id: str, user_id: int | None = None):
         )
 
         connection.commit()
+
+
+# رمزکردن داده‌های قدیمی (بدون پیشوند) که قبل از فعال‌شدن رمزنگاری ذخیره شده‌اند.
+# چند بار اجرا شدنش بی‌خطر است. قبلش از flight_assistant.db یک نسخه‌ی پشتیبان بگیر.
+def encrypt_existing_chat_data() -> int:
+    changed = 0
+
+    with get_connection() as connection:
+
+        for row_id, content in connection.execute(
+            "SELECT id, content FROM conversations"
+        ).fetchall():
+            if content is not None and not is_encrypted(content):
+                connection.execute(
+                    "UPDATE conversations SET content = ? WHERE id = ?",
+                    (encrypt_text(content), row_id)
+                )
+                changed += 1
+
+        for session_id, owner_id, title in connection.execute(
+            "SELECT session_id, owner_id, custom_title FROM conversation_meta "
+            "WHERE custom_title IS NOT NULL"
+        ).fetchall():
+            if not is_encrypted(title):
+                connection.execute(
+                    "UPDATE conversation_meta SET custom_title = ? "
+                    "WHERE session_id = ? AND owner_id = ?",
+                    (encrypt_text(title), session_id, owner_id)
+                )
+                changed += 1
+
+        connection.commit()
+
+    if changed:
+        # نسخه‌ی متنیِ قدیمی ممکن است در صفحه‌های آزادشده‌ی فایل بماند؛ VACUUM پاکش می‌کند
+        vacuum_connection = get_connection()
+        vacuum_connection.execute("VACUUM")
+        vacuum_connection.close()
+
+    return changed
