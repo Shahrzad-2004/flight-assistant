@@ -35,6 +35,7 @@ from ui_handlers import (
     scroll_to_bottom,
     toggle_sort_option,
     select_passenger_option,
+    select_city_option,
     save_passenger_counts,
     confirm_flight,
     edit_flight,
@@ -514,6 +515,35 @@ if current_ui == "passenger_choice":
     scroll_to_bottom()
     # در این مرحله کادر چت نمایش داده نشود
     prompt = None
+
+elif current_ui == "city_choice":
+
+    _choice = st.session_state.get("flight_state", {}).get("city_choice") or {}
+
+    st.markdown(
+        """
+        <div class="cabin-title">
+            یکی از گزینه‌ها را انتخاب کنید (یا نام شهر را بنویسید):
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    for _i, _option in enumerate(_choice.get("options", [])):
+        _label = f"{_option['title']} — {_option['subtitle']}"
+        st.button(
+            _label,
+            key=f"city_option_{_choice.get('field')}_{_i}",
+            use_container_width=True,
+            on_click=select_city_option,
+            args=(_choice.get("field"), _option["city"], _label),
+        )
+
+    scroll_to_bottom()
+    # کادر چت باز می‌ماند تا کاربر بتواند اسم شهر را تایپ هم بکند
+    prompt = st.chat_input(
+        "درخواست خود را بنویسید"
+    )
 
 elif current_ui == "passenger_counter":
 

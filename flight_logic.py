@@ -13,6 +13,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
  
 from models import FlightRequest
+from city_options import COUNTRY_NAMES
  
  
 # ساخت ال ال ام استخراج‌کننده
@@ -123,6 +124,7 @@ def create_flight_extractor():
       "rules": [
         "true: هر اشاره‌ای به بلیط، پرواز، سفر هوایی، مبدأ/مقصد، تاریخ پرواز، تعداد مسافران یا کلاس پرواز — حتی اگر ناقص باشد (مثلاً فقط تعداد مسافران، یا فقط اسم دو شهر).",
         "true: همچنین هر جمله‌ای که با فعل/عبارتِ قصد یا درخواست (نیاز دارم، لازم دارم، دنبال ... هستم، پیدا کن، هست؟، دارید؟، می‌تونم برم؟، چطور برم، میخوام) همراه با یک شهر یا کلمه‌ی سفر/پرواز/بلیط بیاید — ترتیب کلمات یا رسمی/محاوره‌ای بودن تاثیری در true بودن ندارد.",
+        "true: اگر کاربر قصد رفتن/سفر به یک «کشور» را دارد (مثل «میخوام برم ترکیه»، «عراق میخوام برم»، «برم امارات»)، حتی بدون اسم شهر یا کلمه‌ی بلیط/پرواز، is_flight_request=true است؛ کشور فقط یک مقصد ناقص است.",
         "false: فقط وقتی پیام هیچ ربطی به جستجو/رزرو بلیط ندارد."
       ]
     }},
@@ -190,6 +192,9 @@ ZWNJ = "\u200c"
 KNOWN_CITIES = [
     "تهران","مشهد","اصفهان","شیراز","تبریز","کرج","اهواز","قم","کرمانشاه","ارومیه","رشت","زاهدان","کرمان","همدان","یزد","اردبیل","بندرعباس","اراک","زنجان","سنندج","قزوین","خرم‌آباد","گرگان","ساری","بجنورد","بیرجند","ایلام","شهرکرد","یاسوج","بوشهر","سمنان","کیش","قشم","آبادان","ماهشهر","چابهار","دزفول","بهبهان","سیرجان","رفسنجان","بم","طبس","خوی","مراغه","سبزوار","نیشابور","شاهرود","رامسر","نوشهر","عسلویه","لامرد","کنگان","پارس‌آباد","جهرم","فسا","اهر","گچساران","ایرانشهر","مسجدسلیمان","دوحه","دبی","ابوظبی","استانبول","آنکارا","آنتالیا","ازمیر","ایروان","تفلیس","باکو","مسکو","نجف","کربلا","بغداد","دمشق","بیروت","مسقط","کوالالامپور","بانکوک","پاریس","لندن","فرانکفورت","برلین","رم","میلان","آمستردام","تورنتو","دهلی","بمبئی","کراچی","کابل","تاشکند","دوشنبه","اشک‌آباد","قاهره","جده","مدینه",
 ]
+
+# اسم کشورها هم شناسایی شود (مثلاً «بلیط ترکیه»)؛ validate_cities بعداً گزینه‌ها را نشان می‌دهد
+KNOWN_CITIES = KNOWN_CITIES + [c for c in COUNTRY_NAMES if c not in KNOWN_CITIES]
 
 _SORTED_CITIES = sorted(KNOWN_CITIES, key=len, reverse=True)
 
@@ -316,6 +321,60 @@ def validate_departure_date_iso(date_iso: str | None, today=None) -> str | None:
     return None
 
 
+
+_NUMBER_WORDS = {
+    "یک": 1, "یکی": 1, "یه": 1, "دو": 2, "سه": 3, "چهار": 4, "پنج": 5,
+    "شش": 6, "شیش": 6, "هفت": 7, "هشت": 8, "نه": 9, "ده": 10,
+    "یازده": 11, "دوازده": 12, "سیزده": 13, "چهارده": 14,
+    "پانزده": 15, "پونزده": 15, "شانزده": 16, "هفده": 17, "هجده": 18,
+    "نوزده": 19, "بیست": 20, "سی": 30,
+}
+_NUM_TOKEN = r"(?:\d+|" + "|".join(
+    sorted(_NUMBER_WORDS, key=len, reverse=True)
+) + r")"
+_NUM_PHRASE = rf"{_NUM_TOKEN}(?:\s+و\s+{_NUM_TOKEN})?"
+_REL_SUFFIX = r"\s*(?:دیگه|دیگر|بعد|بعدی)(?!\w)"
+
+
+def _to_number(phrase: str):
+    """«سه»، «۳»، «بیست و پنج» → عدد؛ اگر نشد None."""
+    total = 0
+    for part in re.split(r"\s+و\s+", phrase.strip()):
+        part = part.translate(_PERSIAN_DIGITS)
+        if part.isdigit():
+            total += int(part)
+        elif part in _NUMBER_WORDS:
+            total += _NUMBER_WORDS[part]
+        else:
+            return None
+    return total
+
+
+def parse_relative_offset_days(text: str):
+    """«سه روز دیگه»، «۳ روز دیگه»، «دو سه روز دیگه»، «یک هفته دیگه»،
+    «بیست و پنج روز دیگه» → تعداد روز از امروز؛ اگر الگو نبود None."""
+    t = text.translate(_PERSIAN_DIGITS)
+
+    # بازه‌ی کلمه‌ای: «دو سه روز دیگه»، «یکی دو روز دیگه»
+    pair = re.search(
+        rf"(?<!\w)({_NUM_TOKEN})\s+({_NUM_TOKEN})\s+روز{_REL_SUFFIX}", t
+    )
+    if pair:
+        lo, hi = _to_number(pair.group(1)), _to_number(pair.group(2))
+        if lo is not None and hi is not None:
+            return round((lo + hi) / 2)
+
+    single = re.search(
+        rf"(?<!\w)({_NUM_PHRASE})\s+(روز|هفته|ماه){_REL_SUFFIX}", t
+    )
+    if single:
+        n = _to_number(single.group(1))
+        if n is not None:
+            unit = {"روز": 1, "هفته": 7, "ماه": 30}[single.group(2)]
+            return n * unit
+    return None
+
+
 def resolve_departure_date(raw_date: str | None):
  
     if not raw_date:
@@ -361,6 +420,11 @@ def resolve_departure_date(raw_date: str | None):
         lo, hi = int(approx_match.group(1)), int(approx_match.group(2))
         avg_days = round((lo + hi) / 2)
         return (today + timedelta(days=avg_days)).isoformat()
+
+    # «سه روز دیگه»، «یک هفته دیگه»، «دو سه روز دیگه» (عدد یا کلمه)
+    offset_days = parse_relative_offset_days(text)
+    if offset_days is not None:
+        return (today + timedelta(days=offset_days)).isoformat()
 
     # «آخر هفته» باید قبل از «هفته» بررسی شود
     if "آخر هفته" in text or "اخر هفته" in text:
@@ -521,7 +585,7 @@ def fill_missing_city_from_lone_message(user_text: str, current_state: dict):
 
     خروجی: ("origin" | "destination", نام شهر) یا None."""
 
-    if current_state.get("current_step") != "ask_required_fields":
+    if current_state.get("current_step") not in ("ask_required_fields", "city_choice", "invalid_route"):
         return None
 
     has_origin = bool(current_state.get("origin"))
@@ -548,6 +612,75 @@ def fill_missing_city_from_lone_message(user_text: str, current_state: dict):
 
     field = "destination" if has_origin else "origin"
     return field, cities.pop()
+
+
+
+_COUNTRY_RE = re.compile(
+    rf"(?<!\w)(?:{'|'.join(_city_pattern(c) for c in sorted(COUNTRY_NAMES, key=len, reverse=True))})(?!\w)"
+)
+
+
+def apply_country_mentions(user_text: str, result, current_state: dict | None = None) -> None:
+    """وقتی کاربر اسم «کشور» نوشته (مثلاً «عراق»)، LLM گاهی یک شهر از فهرست
+    را حدس می‌زند (مثلاً «کربلا») و کاربر را با شهری که نگفته روبه‌رو می‌کند.
+    اینجا اسم کشور مستقیم از متن خودِ کاربر گرفته می‌شود تا بعداً
+    validate_cities گزینه‌های آن کشور را نشان بدهد."""
+    text = _fa(user_text or "").replace(ZWNJ, " ")
+    norm_text = _norm(text)
+
+    for match in _COUNTRY_RE.finditer(text):
+        country = _CITY_BY_NORM.get(_norm(match.group(0)))
+        if not country:
+            continue
+
+        # قبلاً (از LLM یا regex) همین کشور ثبت شده است
+        if country in (result.origin, result.destination):
+            continue
+
+        before = text[:match.start()].rstrip()
+        explicit = True
+        if before.endswith(("از", "طرف")):
+            field = "origin"
+        elif before.endswith(("به", "تا", "برای")):
+            field = "destination"
+        elif country == "ایران":
+            field, explicit = "origin", False   # «ایران ...» بدون حرف اضافه معمولاً مبدأ است
+        else:
+            field, explicit = "destination", False
+
+        current = getattr(result, field)
+        # بدون حرف اضافه: اگر شهری که LLM گفته واقعاً در متن کاربر هست، دستکاری نمی‌کنیم
+        if not explicit and current and _norm(current) in norm_text:
+            continue
+
+        setattr(result, field, country)
+
+        # مقدار حدسیِ طرف دیگر (شهری که نه در متن است و نه از قبل در state بوده) پاک شود
+        other = "destination" if field == "origin" else "origin"
+        other_value = getattr(result, other)
+        known_before = (current_state or {}).get(other)
+        if (
+            other_value
+            and other_value != known_before
+            and _norm(other_value) not in norm_text
+        ):
+            setattr(result, other, None)
+
+
+
+def _relative_date_from_user_text(user_text: str):
+    """وقتی LLM مقدار departure_date_raw را خالی گذاشته (مثلاً پیام «ایران سه روز
+    دیگه» که اول آن اسم کشور است)، تاریخ‌های نسبی را مستقیم از خود متن
+    کاربر می‌خوانیم: «N روز/هفته دیگه»، فردا، پس‌فردا، امروز."""
+    text = " ".join(
+        (user_text or "").replace(ZWNJ, " ").replace("ي", "ی").replace("ك", "ک").split()
+    )
+    if (
+        parse_relative_offset_days(text) is not None
+        or any(w in text for w in ("پس فردا", "فردا", "امروز"))
+    ):
+        return resolve_departure_date(text)
+    return None
 
 
 def extract_flight_request(user_text: str,current_state: dict | None = None) -> FlightRequest:
@@ -585,6 +718,18 @@ def extract_flight_request(user_text: str,current_state: dict | None = None) -> 
     if text_destination:
         result.destination = text_destination
 
+    # اسم کشور (عراق، ترکیه، ...) → دقیقاً همان، نه شهری که LLM حدس زده
+    apply_country_mentions(user_text, result, current_state)
+
+    # LLM گاهی برای «برم ترکیه» is_flight_request=false می‌دهد، در حالی که کد
+    # بالا مقصد را از متن پیدا کرده؛ اگر مبدأ/مقصدی داریم و در خودِ پیام
+    # نشانه‌ی قصد سفر (برم/میرم/از/به/تا/برای/بلیط/پرواز/سفر/میخوام) هست،
+    # پیام قطعاً پروازی است و نباید به مسیر non_flight برود.
+    if (not result.is_flight_request) and (result.origin or result.destination):
+        _intent_text = _fa(user_text or "").replace(ZWNJ, " ")
+        if _EXPLICIT_ROLE_RE.search(_intent_text) or re.search(r"می ?خوام|می ?خواهم|میخام", _intent_text):
+            result.is_flight_request = True
+
     # فقط اسم یک شهر، بعد از سؤال «مبدأ/مقصد را مشخص کنید» → برای فیلد خالی
     lone_city = fill_missing_city_from_lone_message(
         user_text, current_state
@@ -609,6 +754,8 @@ def extract_flight_request(user_text: str,current_state: dict | None = None) -> 
         resolved_date = resolve_departure_date(
             raw_date
         )
+        if resolved_date is None and not result.departure_date:
+            resolved_date = _relative_date_from_user_text(user_text)
     except InvalidDateError as error:
         # کاربر تاریخ مشخصی گفته ولی نامعتبر یا گذشته بود؛ به‌جای اینکه
         # departure_date خالی بماند و کاربر بی‌دلیل دوباره سؤال شود،

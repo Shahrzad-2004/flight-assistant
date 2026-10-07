@@ -19,6 +19,12 @@ def inject_background_style(background: str) -> None:
     footer{{visibility:hidden;}}
     
     header{{visibility:hidden;}}
+    [data-testid="stStatusWidget"],
+    [data-testid="stToolbar"],
+    [data-testid="stHeader"],
+    [data-testid="stDecoration"]{{
+        display:none !important;
+    }}
     
     html,
     body,
@@ -523,6 +529,73 @@ def inject_cabin_and_passenger_style() -> None:
     }
     
     
+    /* دکمه‌های انتخاب شهر/فرودگاه (وقتی کاربر اسم کشور می‌نویسد): همان استایل شیشه‌ای */
+    [class*="st-key-city_option_"] {
+        margin-bottom: 8px !important;
+    }
+
+    [class*="st-key-city_option_"] button {
+
+        width: 100% !important;
+        min-height: 52px !important;
+
+        background: rgba(255, 255, 255, 0.45) !important;
+
+        backdrop-filter: blur(14px) saturate(140%) !important;
+        -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
+
+        border: 1px solid rgba(255, 255, 255, 0.75) !important;
+        border-radius: 15px !important;
+
+        box-shadow:
+            0 5px 18px rgba(31, 41, 55, 0.10),
+            inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+
+        color: #1f2937 !important;
+
+        font-family: 'Vazirmatn', sans-serif !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+
+        direction: rtl !important;
+        text-align: right !important;
+        justify-content: flex-start !important;
+        padding: 0 18px !important;
+
+        transition: all 0.25s ease !important;
+    }
+
+    [class*="st-key-city_option_"] button p {
+        font-family: 'Vazirmatn', sans-serif !important;
+        color: #1f2937 !important;
+        direction: rtl !important;
+        text-align: right !important;
+        width: 100% !important;
+    }
+
+    [class*="st-key-city_option_"] button:hover {
+
+        background: rgba(37, 99, 235, 0.16) !important;
+        border-color: rgba(37, 99, 235, 0.45) !important;
+
+        box-shadow:
+            0 8px 22px rgba(37, 99, 235, 0.16),
+            inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+
+        transform: translateY(-2px) !important;
+    }
+
+    [class*="st-key-city_option_"] button:active {
+        transform: translateY(0) scale(0.98) !important;
+    }
+
+    /* مرورگرهایی که backdrop-filter ندارند: پس‌زمینه‌ی مات‌تر */
+    @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+        [class*="st-key-city_option_"] button {
+            background: rgba(255, 255, 255, 0.85) !important;
+        }
+    }
+
     /* استایل شیشه‌ای و شیک شمارنده مسافران (بزرگسال/کودک/نوزاد) */
     
     .st-key-adult_count,

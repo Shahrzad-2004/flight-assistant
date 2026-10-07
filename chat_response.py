@@ -63,7 +63,13 @@ def handle_user_prompt(prompt: str) -> None:
 
                     st.session_state["flight_state"] = graph_result
 
-                    answer = graph_result["assistant_message"]
+                    answer = graph_result.get("assistant_message")
+                    if not answer:
+                        print("EMPTY assistant_message:", graph_result)
+                        answer = (
+                            "متأسفم، پاسخی از دستیار دریافت نشد. "
+                            "لطفاً درخواست خود را دوباره بنویسید."
+                        )
 
                     print(
                         "GRAPH RESULT:",

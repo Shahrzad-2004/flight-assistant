@@ -3,6 +3,7 @@ from langgraph.graph import StateGraph, START, END
 from flight_scraper.scraper_manager import search_all_flights
 from flight_scraper.alibaba import IATA_CODES
 from city_matching import resolve_city
+from city_options import resolve_country, get_country_options
 import uuid
 from flight_scraper.alibaba_international import (
     INTERNATIONAL_IATA_CODES,
@@ -58,8 +59,13 @@ class FlightState(TypedDict, total=False):
         "confirmation",
         "search",
         "invalid_city",
-        "invalid_date"
+        "invalid_date",
+        "city_choice"
     ]
+
+    # وقتی کاربر اسم کشور نوشته: {"field": "origin"|"destination",
+    # "country": "ترکیه", "options": [{"city","title","subtitle"}, ...]}
+    city_choice: Optional[dict]
  
     confirmation_status: Literal[
         "pending",
@@ -87,6 +93,8 @@ def route_flight_request(state):
             "ask_passenger_choice",
             "enter_passengers",
             "ask_required_fields",
+            "city_choice",
+            "invalid_route",
             "confirmation"
         ]
     ):
@@ -165,6 +173,41 @@ def validate_cities(state: FlightState) -> dict:
     origin_raw = (state.get("origin") or "").strip()
     destination_raw = (state.get("destination") or "").strip()
 
+    # اگر کاربر اسم «کشور» نوشته (مثلاً ترکیه): کشورهایی که فقط یک شهر
+    # پشتیبانی‌شده دارند مستقیم به همان شهر تبدیل می‌شوند؛ بقیه یک
+    # مرحله‌ی انتخاب (دکمه) می‌گیرند، مثل لیست پیشنهادهای سایت اصلی.
+    for field, raw in (("origin", origin_raw), ("destination", destination_raw)):
+        country = resolve_country(raw) if raw else None
+        if not country:
+            continue
+
+        options = get_country_options(country)
+
+        if len(options) == 1:
+            if field == "origin":
+                origin_raw = options[0]["city"]
+            else:
+                destination_raw = options[0]["city"]
+            continue
+
+        label = "مبدأ" if field == "origin" else "مقصد"
+        return {
+            **state,
+            field: None,
+            "current_step": "city_choice",
+            "city_choice": {
+                "field": field,
+                "country": country,
+                "options": options,
+            },
+            "assistant_message": (
+                f"برای {label} «{country}» این شهرها/فرودگاه‌ها را داریم. "
+                "لطفاً یکی را انتخاب کنید:"
+            ),
+            "ui_type": "city_choice",
+            "flights": [],
+        }
+
     origin = resolve_city(origin_raw, SUPPORTED_CITIES) if origin_raw else None
     destination = resolve_city(destination_raw, SUPPORTED_CITIES) if destination_raw else None
 
@@ -211,11 +254,19 @@ def validate_cities(state: FlightState) -> dict:
     if origin and destination:
         route_error = validate_international_route(origin, destination)
         if route_error:
+            # فقط طرفِ مشکل‌دار پاک می‌شود و طرف درست می‌ماند تا کاربر فقط
+            # همان یک شهر را دوباره بگوید (مثلاً فقط «تهران»)
+            bad_field = "origin"
+            if (
+                destination in IATA_CODES
+                and destination not in INTERNATIONAL_ORIGIN_CITIES
+            ):
+                bad_field = "destination"
             return {
                 **state,
-                "origin": None,
-                "destination": None,
-                "current_step": "invalid_city",
+                "origin": None if bad_field == "origin" else origin,
+                "destination": None if bad_field == "destination" else destination,
+                "current_step": "invalid_route",
                 "assistant_message": route_error,
                 "ui_type": "chat_input",
                 "flights": [],
@@ -226,12 +277,13 @@ def validate_cities(state: FlightState) -> dict:
         "origin": origin,          # مهم: مقدار نرمال‌شده رو جایگزین کن
         "destination": destination, # وگرنه بقیه‌ی pipeline «Tehran» رو می‌بینه نه «تهران»
         "current_step": "cities_valid",
+        "city_choice": None,
         "assistant_message": "",
     }
  
  
 def route_city_validation(state: FlightState) -> str:
-    if state.get("current_step") in ("invalid_city", "same_city"):
+    if state.get("current_step") in ("invalid_city", "same_city", "city_choice", "invalid_route"):
         return "invalid"
     return "valid"
 

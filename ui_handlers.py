@@ -69,7 +69,18 @@ def _run_graph_step(current_state, user_message):
     try:
         
         graph_result = flight_graph.invoke(current_state)
-        assistant_message = graph_result["assistant_message"]
+        assistant_message = graph_result.get("assistant_message")
+        if not assistant_message:
+            # گراف بدون پیام تمام شده؛ به‌جای نمایش «null» وضعیت را لاگ می‌کنیم
+            print("EMPTY assistant_message. current_step:",
+                  graph_result.get("current_step"),
+                  "| ui_type:", graph_result.get("ui_type"))
+            print("STATE IN :", current_state)
+            print("STATE OUT:", graph_result)
+            assistant_message = (
+                "متأسفم، پاسخی از دستیار دریافت نشد. "
+                "لطفاً درخواست خود را دوباره بنویسید."
+            )
     except Exception as error:
         print("GRAPH STEP ERROR:")
         print(traceback.format_exc())
@@ -185,6 +196,22 @@ def select_passenger_option(option):
     graph_result = _run_graph_step(current_state, user_message)
 
     print("PASSENGER OPTION RESULT:", graph_result)
+def select_city_option(field: str, city: str, label: str):
+    """کاربر یکی از گزینه‌های شهر/فرودگاهِ نمایش‌داده‌شده برای یک کشور را زد.
+
+    field: "origin" یا "destination"؛ city: کلید SUPPORTED_CITIES؛
+    label: متنی که به‌عنوان پیام کاربر در چت ثبت می‌شود."""
+
+    current_state = st.session_state["flight_state"].copy()
+
+    current_state[field] = city
+    current_state["city_choice"] = None
+
+    graph_result = _run_graph_step(current_state, f"{label} را انتخاب می‌کنم.")
+
+    print("CITY OPTION RESULT:", graph_result)
+
+
 def save_passenger_counts():
 
     current_state = st.session_state["flight_state"].copy()
